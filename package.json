@@ -1,0 +1,15 @@
+{
+  "name": "hardhat-multichain",
+  "version": "1.0.0",
+  "description": "A Hardhat plugin for launching multiple forked blockchains",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": ["ethereum", "hardhat", "blockchain", "multichain", "crosschain"],
+  "author": "Am0rfu5",
+  "license": "MIT",
+  "dependencies": {
+    "hardhat": "^2.22.0"
+  }
+}
