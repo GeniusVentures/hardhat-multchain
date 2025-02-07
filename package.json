@@ -32,14 +32,15 @@
     "@types/fs-extra": "^5.0.4",
     "@types/mocha": "^5.2.6",
     "@types/node": "^8.10.38",
+    "@types/sinon": "^17.0.3",
     "chai": "^4.2.0",
     "concurrently": "^9.1.2",
     "dotenv": "^16.4.7",
-    "ethers": "^6.13.5",
+    "ethers": "^5.5.4",
     "hardhat": "^2.0.0",
-    "hardhat-ethers": "^1.0.1",
     "mocha": "^7.1.2",
     "prettier": "2.0.5",
+    "sinon": "^19.0.2",
     "ts-node": "^8.1.0",
     "tslint": "^5.16.0",
     "tslint-config-prettier": "^1.18.0",
@@ -47,8 +48,8 @@
     "typescript": "^4.0.3"
   },
   "peerDependencies": {
-    "hardhat": "^2.0.0",
-    "hardhat-ethers": "^1.0.1"
+    "ethers": "^5.5.4",
+    "hardhat": "^2.0.0"
   },
   "dependencies": {}
 }
