@@ -10,10 +10,8 @@ declare module "hardhat/types/runtime" {
     getProvider(newNetwork: string): JsonRpcProvider;
     getProviders(): Map<string, JsonRpcProvider>;
   }
-}
-
-declare module "hardhat/types" {
-  // interface HardhatUserConfig {
+  
+  // export interface HardhatUserConfig {
   //   chainManager?: {
   //     chains: {
   //       [key: string]: {
@@ -23,21 +21,17 @@ declare module "hardhat/types" {
   //     };
   //   };
   // }
-
-  interface HardhatConfig {
-    chainManager?: {
-      chains: {
-        [key: string]: {
-          rpcUrl: string;
-          chainId?: number;
-          blockNumber?: number;
-
-        };
-
-      };
-
-    };
-
-  }
-
+  
+  // export interface HardhatConfig {
+  //   chainManager?: {
+  //     chains: {
+  //       [key: string]: {
+  //         rpcUrl: string;
+  //         chainId?: number;
+  //         blockNumber?: number;
+  
+  //       };
+  //     };
+  //   };
+  // }
 }

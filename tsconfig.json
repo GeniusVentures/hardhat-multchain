@@ -6,14 +6,14 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./",
+    // "rootDir": "./src",
     "strict": true,
     "rootDirs": ["./src", "./test"],
     "esModuleInterop": true
   },
   "exclude": ["dist", "node_modules"],
   "include": [
-    "./test",
-    "./src"
+    "./test/**/*.ts",
+    "./src/**/*.ts"
   ]
 }

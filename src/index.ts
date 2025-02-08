@@ -42,8 +42,8 @@ import { ProviderWrapper } from "hardhat/plugins";
 // );
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre.changeNetwork = lazyObject(() => async (networkName: string) => {  
-  // hre.changeNetwork = async (networkName: string) => {
+  // hre.changeNetwork = lazyObject(() => async (networkName: string) => {  
+  hre.changeNetwork = async (networkName: string) => {
     const provider = await ChainManager.getProvider(networkName);
     if (!provider) {
       throw new Error(`Unknown network: ${networkName}`);
@@ -51,15 +51,18 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 
     hre.network.name = networkName;
     hre.ethers.provider = provider as unknown as typeof hre.ethers.provider;
-  });
+  }
+// )
+;
 
-  hre.getProvider = lazyObject(() => (networkName: string): JsonRpcProvider => {
+  hre.getProvider = (networkName: string): JsonRpcProvider => {
     const provider = ChainManager.getProvider(networkName);
     if (!provider) {
       throw new Error(`Provider for network ${networkName} not found`);
     }
     return provider;
-  });
+  };
+  
 });
 
 task("test-multichain", "Launches multiple forked Hardhat networks")
@@ -92,18 +95,12 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       console.log("No test files specified. Running all tests...");
       await hre.run("test");
     }
-    
-    // if (chainNames.length > 0) {
-    //   console.log("🧹 Cleaning up forked networks...");
-    //   ChainManager.cleanup();
-    // }
-  });
 
-  
-process.on("SIGINT", () => {
-  console.log("Received SIGINT. Cleaning up forked networks...");
-  ChainManager.cleanup();
-  process.exit(0);
+    process.on("exit", () => {
+      console.log("Exiting. Cleaning up forked networks...");
+      ChainManager.cleanup();
+    });
+
 });
 
 export {};
