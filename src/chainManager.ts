@@ -1,10 +1,7 @@
 import { JsonRpcProvider } from "@ethersproject/providers"; // Use 'ethers' for v6, '@ethersproject/providers' for v5
-import { fork, spawn, ChildProcess } from "child_process";
-// import { process } from "node:process";
-// import hre from "hardhat";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-// import { waitForNetwork } from "../utils/network-utils";
-// import { createForkLogger } from "../utils/logger";
+import { fork, ChildProcess } from "child_process";
+import { logger } from "ethers";
+import { createLogger, format, transports, Logger } from "winston";
 
 type ChainConfig = {
   name: string;
@@ -17,23 +14,28 @@ class ChainManager {
   private static instances: Map<string, JsonRpcProvider> = new Map();
   private static processes: Map<string, ChildProcess> = new Map();
   
-  static async setupChains(chains: string[]): Promise<void> {
+  static async setupChains(chains: string[], logsDir?: string): Promise<void> {
     const processes: Record<string, ChildProcess> = {};
     const rpcUrls: Record<string, string> = {};
     
     await Promise.all(
       chains.map(async (chainName, index) => {
-        // TODO the logger should be optional and the file location configurable
-        // const logger = createForkLogger(chainName);
+        let logger: Logger | undefined;
+        if (logsDir) {
+          logger = this.createForkLogger(chainName, logsDir);
+        } 
+        // else {
+        //   logger = this.createForkLogger(chainName);
+        // }
         const forkPort = 8546 + index;
         const chainConfig = this.getChainConfig(chainName);
         if (!chainConfig) {
           throw new Error(`Unsupported chain: ${chainName}`);
         }
-        // const hre: HardhatRuntimeEnvironment = require("hardhat");
 
         console.log(`🛠️ Forking ${chainName} on port ${forkPort}...`);
 
+        // TODO create a hardhat fork process more directly rather than using the CLI
         const child = fork("node_modules/hardhat/internal/cli/cli.js", [
             // "hardhat", 
             "node", 
@@ -49,17 +51,35 @@ class ChainManager {
             env: {
               ...process.env,
               HH_CHAIN_ID: chainConfig.chainId?.toString() || '31337',
-            }
-            // stdio: "inherit" // pipe to parent process
-          }
+            },
+            stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
+          }  
         );
 
-        // // Redirect logs to custom logger
-        // child.stdout?.on('data', (data) => logger.info(data.toString()));
-        // child.stderr?.on('data', (data) => logger.error(data.toString()));
-
-        // // Handle errors
-        // child.on("info", (err) => logger.info(`Log starting fork ${chainConfig.name}: ${err.message}`));        
+        // TODO optionally pipe logs to log file using
+        if (logger !== undefined) { 
+          // Handle logs
+          child.stdout?.on('data', (data) => {
+            logger?.info(data.toString().trim());
+          });
+        
+          child.stderr?.on('data', (data) => {
+            // // Separate error log (There shouldn't be errors so we leave it commented out)
+            // logger?.error(data.toString().trim());
+            logger?.info(data.toString().trim());
+          });
+        
+          child.on("exit", (code) => {
+            logger?.info(`Forked process for ${chainConfig.name} exited with code ${code}`);
+          });
+        
+          child.on("error", (err) => {
+            // // Separate error log (There shouldn't be errors so we leave it commented out)
+            // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
+            
+            logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
+          });
+        }
         
         this.processes.set(chainName, child);
         
@@ -80,15 +100,12 @@ class ChainManager {
         console.log(`🔗 Connecting to ${chainName} at ${providerUrl}`);
         const provider = new JsonRpcProvider(providerUrl);
         this.instances.set(chainName, provider);
-        // This may not be necessary because cleanup is handled by hardhat process
         this.processes.set(chainName, child);
       })
     )
   }
   
   private static getChainConfig(chainName: string): ChainConfig | null {
-    // convert the chain config values to constants based on the chain name
-    // const hre: HardhatRuntimeEnvironment = require("hardhat");
     const config = require('hardhat').config;
     const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
     const chainId = config.chainManager?.chains?.[chainName]?.chainId ?? 
@@ -119,15 +136,6 @@ class ChainManager {
     
     return chainConfigs[chainName] || null;
   }
-  
-  // static async getChain(chainName: string): Promise<JsonRpcProvider> {
-  //   if (this.instances.has(chainName)) {
-  //     return this.instances.get(chainName)!;
-  //   }
-
-  //   const chains = await this.setupChains([chainName]);
-  //   return chains.get(chainName)!;
-  // }
 
   static getProvider(networkName: string): JsonRpcProvider | undefined {
     return this.instances.get(networkName);
@@ -160,6 +168,38 @@ class ChainManager {
   
     throw new Error(`Network at ${url} did not respond within ${timeout}ms.`);
   }
+
+  static createForkLogger = (forkName: string, logDir?: string): Logger => {
+    return createLogger({
+      level: "info",
+      format: format.combine(
+        format.colorize(),
+        // // formatted with timestamp and level
+        // format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+        // format.printf(({ timestamp, level, message }) => `[${timestamp}] [${level}] ${message}`)
+        
+        // formatted with message only
+        format.printf(({ message }) => `[${message}`)
+      ),
+      transports: [
+        new transports.File({
+          filename: logDir ? `${logDir}/${forkName}-node.log` : `./logs/${forkName}-node.log`,
+          level: "info",
+          options: { flags: "w" },
+        }),
+        // // Console logger
+        // new transports.Console({
+        //   format: format.combine(format.colorize(), format.simple()),
+        // }),
+        // // Error logger
+        // new transports.File({
+        //   filename: logDir ? `${logDir}/${forkName}-error.log` : `./logs/${forkName}-error.log`,
+        //   level: "error",
+        //   options: { flags: "w" },
+        // }),
+      ],
+    });
+  };
 }
 
 export default ChainManager;
