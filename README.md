@@ -1,85 +1,162 @@
-# hardhat-example-plugin
+# hardhat-multichain
 
-_A one line description of the plugin_
+_A Hardhat plugin for launching multiple forked blockchains simultaneously._
 
-[Hardhat](https://hardhat.org) plugin example. 
+[Hardhat](https://hardhat.org) plugin for managing multi-fork blockchain networks.
 
 ## What
 
-<_A longer, one paragraph, description of the plugin_>
-
-This plugin will help you with world domination by implementing a simple tic-tac-toe in the terminal.
+`hardhat-multichain` allows developers to simultaneously launch multiple forked Ethereum-compatible blockchains within a Hardhat environment. It simplifies cross-chain development and testing by enabling interactions across different networks without external dependencies. Developers can fork multiple networks simultaneously, run tests against them, and ensure multi-chain compatibility for their smart contracts.
 
 ## Installation
 
-<_A step-by-step guide on how to install the plugin_>
+Install the plugin via npm:
 
 ```bash
-npm install <your npm package name> [list of peer dependencies]
+npm install hardhat-multichain
 ```
 
 Import the plugin in your `hardhat.config.js`:
 
 ```js
-require("<your plugin npm package name>");
+require("hardhat-multichain");
 ```
 
 Or if you are using TypeScript, in your `hardhat.config.ts`:
 
 ```ts
-import "<your plugin npm package name>";
+import "hardhat-multichain";
 ```
 
+## Required Plugins
 
-## Required plugins
+This plugin requires the following Hardhat dependencies:
 
-<_The list of all the required Hardhat plugins if there are any_>
-
-- [@nomiclabs/hardhat-web3](https://github.com/nomiclabs/hardhat/tree/master/packages/hardhat-web3)
+- [@nomiclabs/hardhat-ethers](https://github.com/NomicFoundation/hardhat/tree/main/packages/hardhat-ethers)
 
 ## Tasks
 
-<_A description of each task added by this plugin. If it just overrides internal 
-tasks, this may not be needed_>
+This plugin adds the `_test-multichain_` task to Hardhat:
 
-This plugin creates no additional tasks.
-
-<_or_>
-
-This plugin adds the _example_ task to Hardhat:
-```
-output of `npx hardhat help example`
+```bash
+npx hardhat help test-multichain
 ```
 
-## Environment extensions
+### `test-multichain` Task
 
-<_A description of each extension to the Hardhat Runtime Environment_>
+This task launches multiple forked Hardhat networks and runs tests across them.
 
-This plugin extends the Hardhat Runtime Environment by adding an `example` field
-whose type is `ExampleHardhatRuntimeEnvironmentField`.
+```bash
+npx hardhat test-multichain --chains sepolia,amoy --testFiles test/example.test.ts
+```
+
+#### Parameters:
+
+- `--chains` (comma-separated list): Specifies the networks to fork (e.g., `sepolia,amoy`).
+
+Example:
+
+```bash
+npx hardhat test-multichain --chains "sepolia,amoy"
+
+#### Additional Parameters:
+
+- `--logs` (string): Specifies the directory to save the logs for each network.
+
+No logs are saved by default. The logs are output to console.
+
+Example:
+
+```bash
+npx hardhat test-multichain --chains "sepolia,amoy" --logs logs
+```
+## Environment Extensions
+
+This plugin extends the Hardhat Runtime Environment (HRE) with:
+
+- `hre.changeNetwork(networkName: string)`: Changes the active network in the Hardhat runtime.
+- `hre.getProvider(networkName: string): JsonRpcProvider`: Retrieves the provider for a given network.
 
 ## Configuration
 
-<_A description of each extension to the HardhatConfig or to its fields_>
+This plugin extends the Hardhat User Configuration by adding `chainManager` support. 
 
-This plugin extends the `HardhatUserConfig`'s `ProjectPathsUserConfig` object with an optional
-`newPath` field.
+There are three fields that can be configured for each chain:
 
-This is an example of how to set it:
 
-```js
-module.exports = {
-  paths: {
-    newPath: "new-path"
-  }
+Chain RPC URL, a [Mock Chain ID](#mock-chain-id), and Block Number.  By defining the block number, you can specify the block at which the chain should fork and this will then be cached, as this is the behavior for Hardhat.
+
+Example `hardhat.config.ts`:
+
+```ts
+const config = {
+  ...
+  chainManager: {
+    chains: {
+      sepolia: { rpcUrl: "https://rpc.sepolia.io", chainId: 11155111, blockNumber: 12345678 },
+      amoy: { rpcUrl: "https://rpc.amoy.io", chainId: 80002, blockNumber: 12345678 },
+    },
+  },
+  ...
 };
+```
+### Mock Chain ID
+
+The use of a Mock Chain ID is to allow for the use of the different chain IDs for the forks for easier identification but generally aren't required.
+
+It requires the following configuration in the `hardhat.config.ts` file:
+
+```ts
+const config = {
+  ...
+    // Configuration for different networks
+    networks: {
+      // Hardhat's built-in local blockchain network
+      hardhat: {
+        chainId: MOCK_CHAIN_ID, // Sets the chain ID for the Hardhat network
+        ...
+      },
+  };
+  ...
+}
+```
+
+### .env configuration
+
+You can also configure the plugin using environment variables:
+
+```bash
+SEPOLIA_RPC=https://rpc.sepolia.io
+SEPOLIA_CHAIN_ID=11155111
+SEPOLIA_BLOCK=12345678
+```
+
+### Note on "Unknown" Blockchains
+
+If you are using a blockchain that is not recognized by Hardhat (including Amoy), you will need to define the hardfork history in the `hardhat.config.ts` file. This is because Hardhat does not have a built-in hardfork history for these blockchains.
+
+Example:
+
+```ts
+  // Configuration for different networks
+  networks: {
+    // Hardhat's built-in local blockchain network
+    hardhat: {
+            chainId: MOCK_CHAIN_ID, // Sets the chain ID for the Hardhat network
+      // Sets the Amoy hardfork history which is required for hardhat "unknown" networks
+      80002: {
+        hardforkHistory: {
+          london: 10000000,
+        }
+      },
+    },
+  },
 ```
 
 ## Usage
 
-<_A description of how to use this plugin. How to use the tasks if there are any, etc._>
+After installing and configuring, simply run:
 
-There are no additional steps you need to take for this plugin to work.
-
-Install it and access ethers through the Hardhat Runtime Environment anywhere
-you need it (tasks, scripts, tests, etc).
+```bash
+npx hardhat test-multichain --chains sepolia,amoy
+```
