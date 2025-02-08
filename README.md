@@ -1,4 +1,4 @@
-# hardhat-multichain
+# HardhatMmultichain
 
 _A Hardhat plugin for launching multiple forked blockchains simultaneously._
 
@@ -142,7 +142,7 @@ Example:
   networks: {
     // Hardhat's built-in local blockchain network
     hardhat: {
-            chainId: MOCK_CHAIN_ID, // Sets the chain ID for the Hardhat network
+      ...
       // Sets the Amoy hardfork history which is required for hardhat "unknown" networks
       80002: {
         hardforkHistory: {
@@ -160,3 +160,19 @@ After installing and configuring, simply run:
 ```bash
 npx hardhat test-multichain --chains sepolia,amoy
 ```
+
+## Code Examples
+
+### Using available Networks
+
+You can change the active Ethers provider in a test by using the `getProvider(<chain-name>)` function:
+
+```ts
+ethers.provider = hre.getProvider("sepolia");
+```
+
+This only changes the Ethers provider within the current scope.
+
+### Looping through Networks
+
+- Needs to be completed
