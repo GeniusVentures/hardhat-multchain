@@ -34,9 +34,9 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
 });
 
 task("test-multichain", "Launches multiple forked Hardhat networks")
+  .addOptionalVariadicPositionalParam("testFiles", "Test files to run")
   .addOptionalParam("chains", "Comma-separated list of chain names to fork", "")
   .addOptionalParam("logs", "Log directory for forked chain output", "")
-  .addOptionalVariadicPositionalParam("testFiles", "Test files to run")
   .setAction(async ({ chains, logs, testFiles }, hre) => {
     if (!chains) {
       console.log("No secondary chains specified.");
