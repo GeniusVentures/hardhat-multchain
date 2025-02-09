@@ -1,29 +1,35 @@
 import { extendEnvironment } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { task } from "hardhat/config";
-import ChainManager from "./chainManager";
-import "./type-extensions";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import "@nomiclabs/hardhat-ethers";
+import { lazyObject } from "hardhat/plugins";
+import ChainManager from "./chainManager";
+import { MultiChainProviders } from "./type-extensions";
+// import "./type-extensions";
+
+export function getProvider(networkName: string): JsonRpcProvider {
+  const provider = ChainManager.getProvider(networkName);
+  if (!provider) {
+    throw new Error(`Provider for network ${networkName} not found`);
+  }
+  return provider;
+}
+
+export function getMultichainProviders(): MultiChainProviders {
+  return ChainManager.getProviders();
+}
+
+export { default as multichain } from "./chainManager";
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-  hre.changeNetwork = async (networkName: string) => {
-    const provider = await ChainManager.getProvider(networkName);
-    if (!provider) {
-      throw new Error(`Unknown network: ${networkName}`);
-    }
 
-    hre.network.name = networkName;
-    hre.ethers.provider = provider as unknown as typeof hre.ethers.provider;
-  };
-
-  hre.getProvider = (networkName: string): JsonRpcProvider => {
-    const provider = ChainManager.getProvider(networkName);
-    if (!provider) {
-      throw new Error(`Provider for network ${networkName} not found`);
-    }
-    return provider;
-  };
+  hre.multichain = lazyObject(()  => {
+    // const provider = ChainManager.getProvider(networkName);
+    // if (!provider) {
+    //   throw new Error(`Provider for network ${networkName} not found`);
+    // }
+    return ChainManager.getProviders();
+  });
   
 });
 

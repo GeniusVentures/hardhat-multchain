@@ -2,19 +2,16 @@ import { JsonRpcProvider } from "@ethersproject/providers"; // Use 'ethers' for 
 import { fork, ChildProcess } from "child_process";
 import { logger } from "ethers";
 import { createLogger, format, transports, Logger } from "winston";
-
-export type ChainConfig = {
-  name: string;
-  rpcUrl: string;
-  blockNumber?: number;
-  chainId?: number;
-};
+import { ChainConfig, MultiChainProviders } from "./type-extensions";
 
 class ChainManager {
-  private static instances: Map<string, JsonRpcProvider> = new Map();
+  private static instances: MultiChainProviders = new Map();
   private static processes: Map<string, ChildProcess> = new Map();
+  private static forkPort = 8546;
   
-  static async setupChains(chains: string[], logsDir?: string): Promise<void> {
+  static async setupChains(chains: string[], logsDir?: string): Promise<MultiChainProviders> {
+    if (this.instances.size > 0) return this.instances;
+    
     const processes: Record<string, ChildProcess> = {};
     const rpcUrls: Record<string, string> = {};
     
@@ -24,25 +21,21 @@ class ChainManager {
         if (logsDir) {
           logger = this.createForkLogger(chainName, logsDir);
         } 
-        // else {
-        //   logger = this.createForkLogger(chainName);
-        // }
-        const forkPort = 8546 + index;
+        this.forkPort = this.forkPort + index;
         const chainConfig = this.getChainConfig(chainName);
         if (!chainConfig) {
           throw new Error(`Unsupported chain: ${chainName}`);
         }
-
-        console.log(`🛠️ Forking ${chainName} on port ${forkPort}...`);
+        
+        console.log(`🛠️ Forking ${chainName} on port ${this.forkPort}...`);
 
         // TODO create a hardhat fork process more directly rather than using the CLI
         const child = fork("node_modules/hardhat/internal/cli/cli.js", [
-            // "hardhat", 
             "node", 
             "--fork", 
             chainConfig.rpcUrl, 
             "--port", 
-            forkPort.toString(),
+            this.forkPort.toString(),
             ...(chainConfig.blockNumber
               ? ['--fork-block-number', chainConfig.blockNumber.toString()]
               : []),
@@ -69,20 +62,20 @@ class ChainManager {
           });
         
           child.on("exit", (code) => {
-            logger?.info(`Forked process for ${chainConfig.name} exited with code ${code}`);
+            logger?.info(`Forked process for ${chainName} exited with code ${code}`);
           });
         
           child.on("error", (err) => {
             // // Separate error log (There shouldn't be errors so we leave it commented out)
             // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
             
-            logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
+            logger?.info(`Error in forked process for ${chainName}: ${err.message}`);
           });
         }
         
         this.processes.set(chainName, child);
         
-        const providerUrl = 'http://127.0.0.1:' + forkPort.toString();
+        const providerUrl = 'http://127.0.0.1:' + this.forkPort.toString();
  
         try {
           await this.waitForNetwork(providerUrl, 100000);
@@ -102,6 +95,7 @@ class ChainManager {
         this.processes.set(chainName, child);
       })
     )
+    return this.instances;
   }
   
   private static getChainConfig(chainName: string): ChainConfig | null {
@@ -126,7 +120,6 @@ class ChainManager {
 
     const chainConfigs: Record<string, ChainConfig> = {
       [chainName]: {
-      name: chainName,
       rpcUrl: rpcUrl!,
       blockNumber: blockNumber,
       chainId: chainId,
@@ -136,8 +129,12 @@ class ChainManager {
     return chainConfigs[chainName] || null;
   }
 
-  static getProvider(networkName: string): JsonRpcProvider | undefined {
-    return this.instances.get(networkName);
+  static getProvider(chainName: string): JsonRpcProvider | undefined {
+    return this.instances.get(chainName);
+  }
+  
+  static getProviders(): MultiChainProviders {
+    return this.instances;
   }
 
   static cleanup(): void {
