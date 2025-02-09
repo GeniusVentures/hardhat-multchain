@@ -3,7 +3,7 @@ import { fork, ChildProcess } from "child_process";
 import { logger } from "ethers";
 import { createLogger, format, transports, Logger } from "winston";
 
-type ChainConfig = {
+export type ChainConfig = {
   name: string;
   rpcUrl: string;
   blockNumber?: number;
