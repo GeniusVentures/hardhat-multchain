@@ -56,7 +56,6 @@ class ChainManager {
           }  
         );
 
-        // TODO optionally pipe logs to log file using
         if (logger !== undefined) { 
           // Handle logs
           child.stdout?.on('data', (data) => {
