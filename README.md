@@ -1,4 +1,4 @@
-# HardhatMmultichain
+# Hardhat-Multichain
 
 _A Hardhat plugin for launching multiple forked blockchains simultaneously._
 
