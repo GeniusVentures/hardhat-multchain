@@ -175,4 +175,4 @@ This only changes the Ethers provider within the current scope.
 
 ### Looping through Networks
 
-- Needs to be completed
+- see the test/multichain-plugin.test.ts in the [boilerplate and exampels repo](https://github.com/GeniusVentures/hardhat-multichain-boilerplate)
