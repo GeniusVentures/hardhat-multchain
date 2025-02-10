@@ -98,7 +98,7 @@ class ChainManager {
   }
   
   private static getChainConfig(chainName: string): ChainConfig | null {
-    const config = require('hardhat').config;
+    const config = hre.userConfig;
     const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
     const chainId = config.chainManager?.chains?.[chainName]?.chainId ?? 
       parseInt(process.env[configChainId] || "31337");
