@@ -1,5 +1,6 @@
 import { JsonRpcProvider } from "@ethersproject/providers"; // Use 'ethers' for v6, '@ethersproject/providers' for v5
 import { fork, ChildProcess } from "child_process";
+import hre from "hardhat";
 import { createLogger, format, transports, Logger } from "winston";
 import { ChainConfig, MultiChainProviders } from "./type-extensions";
 
