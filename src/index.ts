@@ -1,11 +1,9 @@
-import { extendEnvironment } from "hardhat/config";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { task } from "hardhat/config";
+import { extendEnvironment, extendConfig, task } from "hardhat/config";
+import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { lazyObject } from "hardhat/plugins";
 import ChainManager from "./chainManager";
-import { MultiChainProviders } from "./type-extensions";
-// import "./type-extensions";
+import { MultiChainProviders, MultiChainConfig, TaskArgs } from "./type-extensions"; // Import MultiChainConfig
 
 export function getProvider(networkName: string): JsonRpcProvider {
   const provider = ChainManager.getProvider(networkName);
@@ -22,15 +20,20 @@ export function getMultichainProviders(): MultiChainProviders {
 export { default as multichain } from "./chainManager";
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
-
-  hre.multichain = lazyObject(()  => {
-    // const provider = ChainManager.getProvider(networkName);
-    // if (!provider) {
-    //   throw new Error(`Provider for network ${networkName} not found`);
-    // }
+  hre.multichain = lazyObject(() => {
     return ChainManager.getProviders();
   });
-  
+});
+
+extendConfig((config, userConfig) => {
+  const defaultChainManager: MultiChainConfig = {
+    chains: {},
+  };
+
+  config.chainManager = {
+    ...defaultChainManager,
+    ...userConfig.chainManager,
+  };
 });
 
 task("test-multichain", "Launches multiple forked Hardhat networks")
@@ -42,14 +45,9 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       console.log("No secondary chains specified.");
       return;
     }
-
-    interface TaskArgs {
-      chains: string;
-      logs?: string;
-    }
+    const logsDir: string|undefined = logs as TaskArgs["logs"] || undefined;
 
     const chainNames: string[] = (chains as TaskArgs["chains"]).split(",").map((name: string) => name.trim());
-    const logsDir: string|undefined = logs as TaskArgs["logs"] || undefined;
     if (chainNames.length > 0) {
       console.log(`🔄 Launching forks for: ${chainNames.join(", ")}`);
       await ChainManager.setupChains(chainNames, logsDir? logsDir : undefined);
@@ -58,7 +56,7 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       console.log("No valid chain names provided.");
       return;
     }
-    
+
     if (testFiles && testFiles.length > 0) {
       console.log(`🧪 Running tests: ${testFiles.join(", ")}`);
       await hre.run("test", { testFiles });
@@ -71,7 +69,6 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       console.log("Exiting. Cleaning up forked networks...");
       ChainManager.cleanup();
     });
-
-});
+  });
 
 export {};
