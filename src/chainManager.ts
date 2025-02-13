@@ -21,6 +21,15 @@ class ChainManager {
         if (logsDir) {
           logger = this.createForkLogger(chainName, logsDir);
         } 
+        // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
+        if (chainName === "hardhat") {
+          const providerUrl = 'http://127.0.0.1:8545';
+          console.log(`🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
+          const provider = new JsonRpcProvider(providerUrl);
+          this.instances.set(chainName, provider);
+          return;
+        }
+          
         this.forkPort = this.forkPort + index;
         const chainConfig = this.getChainConfig(chainName);
         if (!chainConfig) {
@@ -92,7 +101,7 @@ class ChainManager {
         console.log(`🔗 Connecting to ${chainName} at ${providerUrl}`);
         const provider = new JsonRpcProvider(providerUrl);
         this.instances.set(chainName, provider);
-        this.processes.set(chainName, child);
+
       })
     )
     return this.instances;
@@ -140,7 +149,7 @@ class ChainManager {
   static cleanup(): void {
     console.log("🧹 Cleaning up forked chains...");
     this.processes.forEach((process, name) => {
-      console.log(`❌ Killing forked process for: ${name}`);
+      console.log(`💀 Killing forked process for: ${name}`);
       process.kill("SIGINT");
     });
     this.processes.clear();
@@ -157,7 +166,7 @@ class ChainManager {
         console.log(`Network at ${url} is ready.`);
         return;
       } catch (error) {
-        console.log(`Waiting for network at ${url}...`);
+        console.log(`⏱ Waiting for network at ${url}...`);
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
       }
     }
