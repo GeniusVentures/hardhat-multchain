@@ -38,7 +38,7 @@ extendConfig((config, userConfig) => {
 
 task("test-multichain", "Launches multiple forked Hardhat networks")
   .addOptionalVariadicPositionalParam("testFiles", "Test files to run")
-  .addOptionalParam("chains", "Comma-separated list of chain names to fork", "")
+  .addParam("chains", "Comma-separated list of chain names to fork", "")
   .addOptionalParam("logs", "Log directory for forked chain output", "")
   .setAction(async ({ chains, logs, testFiles }, hre) => {
     if (!chains) {
@@ -50,7 +50,7 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
     const chainNames: string[] = (chains as TaskArgs["chains"]).split(",").map((name: string) => name.trim());
     if (chainNames.length > 0) {
       console.log(`🔄 Launching forks for: ${chainNames.join(", ")}`);
-      await ChainManager.setupChains(chainNames, logsDir? logsDir : undefined);
+      await ChainManager.setupChains(chainNames, hre.userConfig, logsDir? logsDir : undefined);
       console.log("✅ Forked chains launched successfully.");
     } else {
       console.log("No valid chain names provided.");
