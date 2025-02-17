@@ -1,14 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const providers_1 = require("@ethersproject/providers"); // Use 'ethers' for v6, '@ethersproject/providers' for v5
 const child_process_1 = require("child_process");
-const hardhat_1 = __importDefault(require("hardhat"));
 const winston_1 = require("winston");
 class ChainManager {
-    static async setupChains(chains, logsDir) {
+    static async setupChains(chains, config, logsDir) {
         if (this.instances.size > 0)
             return this.instances;
         const processes = {};
@@ -28,7 +24,7 @@ class ChainManager {
                 return;
             }
             this.forkPort = this.forkPort + index;
-            const chainConfig = this.getChainConfig(chainName);
+            const chainConfig = this.getChainConfig(chainName, config);
             if (!chainConfig) {
                 throw new Error(`Unsupported chain: ${chainName}`);
             }
@@ -87,12 +83,12 @@ class ChainManager {
             console.log(`🔗 Connecting to ${chainName} at ${providerUrl}`);
             const provider = new providers_1.JsonRpcProvider(providerUrl);
             this.instances.set(chainName, provider);
+            this.processes.set(chainName, child);
         }));
         return this.instances;
     }
-    static getChainConfig(chainName) {
+    static getChainConfig(chainName, config) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
-        const config = hardhat_1.default.userConfig;
         const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
         const chainId = (_d = (_c = (_b = (_a = config.chainManager) === null || _a === void 0 ? void 0 : _a.chains) === null || _b === void 0 ? void 0 : _b[chainName]) === null || _c === void 0 ? void 0 : _c.chainId) !== null && _d !== void 0 ? _d : parseInt(process.env[configChainId] || "31337");
         const envRpcUrl = chainName.toUpperCase() + '_RPC';
@@ -140,7 +136,7 @@ class ChainManager {
                 return;
             }
             catch (error) {
-                console.log(`⏱ Waiting for network at ${url}...`);
+                console.log(`Waiting for network at ${url}...`);
                 await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
             }
         }

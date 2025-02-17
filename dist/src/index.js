@@ -3,7 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.multichain = exports.getMultichainProviders = exports.getProvider = void 0;
+exports.multichain = void 0;
+exports.getProvider = getProvider;
+exports.getMultichainProviders = getMultichainProviders;
 const config_1 = require("hardhat/config");
 const plugins_1 = require("hardhat/plugins");
 const chainManager_1 = __importDefault(require("./chainManager"));
@@ -14,11 +16,9 @@ function getProvider(networkName) {
     }
     return provider;
 }
-exports.getProvider = getProvider;
 function getMultichainProviders() {
     return chainManager_1.default.getProviders();
 }
-exports.getMultichainProviders = getMultichainProviders;
 var chainManager_2 = require("./chainManager");
 Object.defineProperty(exports, "multichain", { enumerable: true, get: function () { return __importDefault(chainManager_2).default; } });
 (0, config_1.extendEnvironment)((hre) => {
@@ -37,7 +37,7 @@ Object.defineProperty(exports, "multichain", { enumerable: true, get: function (
 });
 (0, config_1.task)("test-multichain", "Launches multiple forked Hardhat networks")
     .addOptionalVariadicPositionalParam("testFiles", "Test files to run")
-    .addOptionalParam("chains", "Comma-separated list of chain names to fork", "")
+    .addParam("chains", "Comma-separated list of chain names to fork", "")
     .addOptionalParam("logs", "Log directory for forked chain output", "")
     .setAction(async ({ chains, logs, testFiles }, hre) => {
     if (!chains) {
@@ -48,7 +48,7 @@ Object.defineProperty(exports, "multichain", { enumerable: true, get: function (
     const chainNames = chains.split(",").map((name) => name.trim());
     if (chainNames.length > 0) {
         console.log(`🔄 Launching forks for: ${chainNames.join(", ")}`);
-        await chainManager_1.default.setupChains(chainNames, logsDir ? logsDir : undefined);
+        await chainManager_1.default.setupChains(chainNames, hre.userConfig, logsDir ? logsDir : undefined);
         console.log("✅ Forked chains launched successfully.");
     }
     else {
