@@ -2,3 +2,15 @@ yarn.json
 tslint.json
 .editorconfig
 .mocharc.json
+.editorconfig
+yarn.lock
+.yarn
+artifacts
+cache
+dist
+flat
+logs
+notes
+node_modules
+tslint.json
+LICENSE

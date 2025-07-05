@@ -1,54 +1,315 @@
 # Hardhat-Multichain
 
-_A Hardhat plugin for launching multiple forked blockchains simultaneously._
+[![npm version](https://badge.fury.io/js/hardhat-multichain.svg)](https://badge.fury.io/js/hardhat-multichain)
+[![Build Status](https://github.com/your-org/hardhat-multichain/workflows/CI/badge.svg)](https://github.com/your-org/hardhat-multichain/actions)
+[![Coverage Status](https://coveralls.io/repos/github/your-org/hardhat-multichain/badge.svg?branch=main)](https://coveralls.io/github/your-org/hardhat-multichain?branch=main)
 
-[Hardhat](https://hardhat.org) plugin for managing multi-fork blockchain networks.
+A professional Hardhat plugin for launching and managing multiple forked blockchain networks simultaneously. Perfect for cross-chain development, testing, and multi-network deployments.
 
-## What
+## 🚀 Features
 
-`hardhat-multichain` allows developers to simultaneously launch multiple forked Ethereum-compatible blockchains within a Hardhat environment. It simplifies cross-chain development and testing by enabling interactions across different networks without external dependencies. Developers can fork multiple networks simultaneously, run tests against them, and ensure multi-chain compatibility for their smart contracts.
+- **Multi-Network Forking**: Launch multiple blockchain forks simultaneously
+- **Network Management**: Easy switching between different networks
+- **Provider Management**: Unified provider interface for all networks
+- **Configuration Flexibility**: Support for environment variables and config files
+- **Logging & Monitoring**: Comprehensive logging with chain status tracking
+- **Error Handling**: Robust error handling with detailed error messages
+- **TypeScript Support**: Full TypeScript support with comprehensive type definitions
+- **Testing Integration**: Seamless integration with Hardhat testing framework
 
-## Installation
-
-Install the plugin via npm:
+## 📦 Installation
 
 ```bash
 npm install hardhat-multichain
 ```
 
-Import the plugin in your `hardhat.config.js`:
+Or with Yarn:
 
-```js
-require("hardhat-multichain");
+```bash
+yarn add hardhat-multichain
 ```
 
-Or if you are using TypeScript, in your `hardhat.config.ts`:
+## 🛠️ Setup
 
-```ts
+### 1. Import the plugin in your `hardhat.config.ts`:
+
+```typescript
 import "hardhat-multichain";
+
+const config: HardhatUserConfig = {
+  // Your existing config...
+  chainManager: {
+    chains: {
+      ethereum: {
+        rpcUrl: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+        chainId: 1,
+        blockNumber: 18500000 // Optional: Fork from specific block
+      },
+      polygon: {
+        rpcUrl: "https://polygon-rpc.com",
+        chainId: 137,
+        blockNumber: 50000000
+      },
+      arbitrum: {
+        rpcUrl: "https://arb1.arbitrum.io/rpc",
+        chainId: 42161
+      }
+    }
+  }
+};
+
+export default config;
 ```
 
-## Required Plugins
+### 2. Environment Variables (Alternative Configuration)
 
-This plugin requires the following Hardhat dependencies:
+Create a `.env` file in your project root:
 
-- [@nomiclabs/hardhat-ethers](https://github.com/NomicFoundation/hardhat/tree/main/packages/hardhat-ethers)
+```env
+ETHEREUM_RPC=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
+ETHEREUM_BLOCK=18500000
+POLYGON_RPC=https://polygon-rpc.com
+POLYGON_BLOCK=50000000
+ARBITRUM_RPC=https://arb1.arbitrum.io/rpc
+```
 
-## Tasks
+## 📖 Usage
 
-This plugin adds the `_test-multichain_` task to Hardhat:
+### Basic Usage
+
+Launch multiple networks and run tests:
 
 ```bash
-npx hardhat help test-multichain
+npx hardhat test-multichain --chains ethereum,polygon,arbitrum
 ```
 
-### `test-multichain` Task
-
-This task launches multiple forked Hardhat networks and runs tests across them.
+### With Specific Test Files
 
 ```bash
-npx hardhat test-multichain --chains sepolia,amoy --testFiles test/example.test.ts
+npx hardhat test-multichain --chains ethereum,polygon --testFiles test/crosschain.test.ts
 ```
+
+### With Custom Logging
+
+```bash
+npx hardhat test-multichain --chains ethereum,polygon --logs ./logs
+```
+
+### Programmatic Usage
+
+```typescript
+import { getProvider, getMultichainProviders } from "hardhat-multichain";
+import ChainManager from "hardhat-multichain/dist/src/chainManager";
+
+// Get a specific provider
+const ethereumProvider = getProvider("ethereum");
+const blockNumber = await ethereumProvider.getBlockNumber();
+
+// Get all providers
+const providers = getMultichainProviders();
+
+// Setup chains programmatically
+await ChainManager.setupChains(["ethereum", "polygon"], hre.userConfig);
+
+// Check chain status
+const status = ChainManager.getChainStatus("ethereum");
+console.log(`Ethereum chain status: ${status}`);
+
+// Cleanup when done
+await ChainManager.cleanup();
+```
+
+### Advanced Testing Example
+
+```typescript
+import { expect } from "chai";
+import { getProvider } from "hardhat-multichain";
+
+describe("Cross-chain Contract Tests", function () {
+  let ethereumProvider: JsonRpcProvider;
+  let polygonProvider: JsonRpcProvider;
+
+  before(async function () {
+    // Providers are automatically available after test-multichain task
+    ethereumProvider = getProvider("ethereum");
+    polygonProvider = getProvider("polygon");
+  });
+
+  it("should deploy contract on multiple chains", async function () {
+    // Deploy to Ethereum
+    const ethereumFactory = new ethers.ContractFactory(abi, bytecode, ethereumProvider.getSigner());
+    const ethereumContract = await ethereumFactory.deploy();
+    
+    // Deploy to Polygon
+    const polygonFactory = new ethers.ContractFactory(abi, bytecode, polygonProvider.getSigner());
+    const polygonContract = await polygonFactory.deploy();
+
+    expect(ethereumContract.address).to.be.properAddress;
+    expect(polygonContract.address).to.be.properAddress;
+  });
+});
+```
+
+## ⚙️ Configuration Options
+
+### Chain Configuration
+
+```typescript
+interface ChainConfig {
+  rpcUrl: string;        // Required: RPC endpoint URL
+  chainId?: number;      // Optional: Chain ID (default: 31337)
+  blockNumber?: number;  // Optional: Block number to fork from
+}
+```
+
+### Task Parameters
+
+- `--chains`: Comma-separated list of chain names to fork
+- `--logs`: Directory for storing chain logs (optional)
+- `testFiles`: Specific test files to run (optional)
+
+## 🔧 API Reference
+
+### ChainManager
+
+The core class for managing blockchain networks.
+
+#### Static Methods
+
+- `setupChains(chains: string[], config: HardhatUserConfig, logsDir?: string): Promise<MultiChainProviders>`
+- `getProvider(chainName: string): JsonRpcProvider | undefined`
+- `getProviders(): MultiChainProviders`
+- `getChainStatus(chainName: string): 'running' | 'stopped' | 'error' | 'unknown'`
+- `getChainStatusDetails(chainName: string): ChainStatus | undefined`
+- `getAllChainStatuses(): Map<string, ChainStatus>`
+- `validateNetwork(url: string, timeout?: number): Promise<boolean>`
+- `cleanup(): Promise<void>`
+
+### Utility Functions
+
+- `getProvider(networkName: string): JsonRpcProvider`
+- `getMultichainProviders(): MultiChainProviders`
+
+### Error Classes
+
+- `ChainConfigError`: Configuration-related errors
+- `NetworkConnectionError`: Network connectivity issues
+- `ProcessCleanupError`: Process cleanup failures
+
+## 🚨 Error Handling
+
+The plugin includes comprehensive error handling:
+
+```typescript
+import { ChainConfigError, NetworkConnectionError } from "hardhat-multichain";
+
+try {
+  await ChainManager.setupChains(["ethereum"], config);
+} catch (error) {
+  if (error instanceof ChainConfigError) {
+    console.error("Configuration issue:", error.message);
+  } else if (error instanceof NetworkConnectionError) {
+    console.error("Network connectivity issue:", error.message);
+  }
+}
+```
+
+## 📊 Monitoring & Logging
+
+### Chain Status Monitoring
+
+```typescript
+// Get detailed status for a specific chain
+const status = ChainManager.getChainStatusDetails("ethereum");
+console.log(status);
+// Output: { name: "ethereum", status: "running", port: 8547, rpcUrl: "...", ... }
+
+// Get status for all chains
+const allStatuses = ChainManager.getAllChainStatuses();
+allStatuses.forEach((status, chainName) => {
+  console.log(`${chainName}: ${status.status}`);
+});
+```
+
+### Custom Logging
+
+Logs are automatically generated when using the `--logs` parameter:
+
+```bash
+npx hardhat test-multichain --chains ethereum,polygon --logs ./logs
+```
+
+This creates separate log files for each chain:
+- `./logs/ethereum-node.log`
+- `./logs/polygon-node.log`
+
+## 🧪 Testing
+
+The plugin includes comprehensive tests. Run them with:
+
+```bash
+npm test
+```
+
+For coverage report:
+
+```bash
+npm run test:coverage
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Build the project: `npm run build`
+4. Run tests: `npm test`
+5. Run linting: `npm run lint`
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Hardhat](https://hardhat.org) for the excellent development framework
+- [Ethers.js](https://docs.ethers.io/) for blockchain interactions
+- The Ethereum community for continuous innovation
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Network Connection Timeouts
+```
+Error: Failed to connect to network at http://localhost:8547
+```
+**Solution**: Check your RPC URLs and ensure they're accessible. Increase timeout if needed.
+
+#### Port Already in Use
+```
+Error: Port 8547 is already in use
+```
+**Solution**: The plugin automatically increments ports, but you may need to close other Hardhat instances.
+
+#### Missing RPC Configuration
+```
+Error: Missing required rpcUrl for ethereum
+```
+**Solution**: Ensure your `hardhat.config.ts` includes the chain configuration or set environment variables.
+
+### Getting Help
+
+- 📖 [Documentation](docs/)
+- 🐛 [Issue Tracker](https://github.com/your-org/hardhat-multichain/issues)
+- 💬 [Discussions](https://github.com/your-org/hardhat-multichain/discussions)
+
+---
+
+**Made with ❤️ for the Ethereum ecosystem**
 
 #### Parameters:
 

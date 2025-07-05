@@ -2,13 +2,13 @@ import { extendEnvironment, extendConfig, task } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { lazyObject } from "hardhat/plugins";
-import ChainManager from "./chainManager";
+import ChainManager, { ChainConfigError, NetworkConnectionError, ProcessCleanupError } from "./chainManager";
 import { MultiChainProviders, MultiChainConfig, TaskArgs } from "./type-extensions"; // Import MultiChainConfig
 
 export function getProvider(networkName: string): JsonRpcProvider {
   const provider = ChainManager.getProvider(networkName);
   if (!provider) {
-    throw new Error(`Provider for network ${networkName} not found`);
+    throw new Error(`Provider for network ${networkName} not found. Ensure the chain is properly configured and running.`);
   }
   return provider;
 }
@@ -16,6 +16,9 @@ export function getProvider(networkName: string): JsonRpcProvider {
 export function getMultichainProviders(): MultiChainProviders {
   return ChainManager.getProviders();
 }
+
+// Export error classes for external use
+export { ChainConfigError, NetworkConnectionError, ProcessCleanupError };
 
 export { default as multichain } from "./chainManager";
 
@@ -45,30 +48,76 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       console.log("No secondary chains specified.");
       return;
     }
-    const logsDir: string|undefined = logs as TaskArgs["logs"] || undefined;
 
+    const logsDir: string | undefined = logs as TaskArgs["logs"] || undefined;
     const chainNames: string[] = (chains as TaskArgs["chains"]).split(",").map((name: string) => name.trim());
-    if (chainNames.length > 0) {
-      console.log(`🔄 Launching forks for: ${chainNames.join(", ")}`);
-      await ChainManager.setupChains(chainNames, hre.userConfig, logsDir? logsDir : undefined);
-      console.log("✅ Forked chains launched successfully.");
-    } else {
+
+    if (chainNames.length === 0) {
       console.log("No valid chain names provided.");
       return;
     }
 
-    if (testFiles && testFiles.length > 0) {
-      console.log(`🧪 Running tests: ${testFiles.join(", ")}`);
-      await hre.run("test", { testFiles });
-    } else {
-      console.log("No test files specified. Running all tests...");
-      await hre.run("test");
-    }
+    let cleanupRegistered = false;
 
-    process.on("exit", () => {
-      console.log("Exiting. Cleaning up forked networks...");
-      ChainManager.cleanup();
-    });
+    try {
+      console.log(`🔄 Launching forks for: ${chainNames.join(", ")}`);
+      await ChainManager.setupChains(chainNames, hre.userConfig, logsDir ? logsDir : undefined);
+      console.log("✅ Forked chains launched successfully.");
+
+      // Register cleanup handlers only after successful setup
+      if (!cleanupRegistered) {
+        const cleanup = async () => {
+          console.log("Exiting. Cleaning up forked networks...");
+          try {
+            await ChainManager.cleanup();
+          } catch (error) {
+            console.error("Error during cleanup:", error);
+          }
+        };
+
+        process.on("exit", cleanup);
+        process.on("SIGINT", async () => {
+          await cleanup();
+          process.exit(0);
+        });
+        process.on("SIGTERM", async () => {
+          await cleanup();
+          process.exit(0);
+        });
+
+        cleanupRegistered = true;
+      }
+
+      if (testFiles && testFiles.length > 0) {
+        console.log(`🧪 Running tests: ${testFiles.join(", ")}`);
+        await hre.run("test", { testFiles });
+      } else {
+        console.log("No test files specified. Running all tests...");
+        await hre.run("test");
+      }
+    } catch (error) {
+      console.error("❌ Error during multichain setup or testing:");
+
+      if (error instanceof ChainConfigError) {
+        console.error(`Configuration Error: ${error.message}`);
+      } else if (error instanceof NetworkConnectionError) {
+        console.error(`Network Connection Error: ${error.message}`);
+        console.error("Please check your RPC URLs and network connectivity.");
+      } else if (error instanceof Error) {
+        console.error(`Error: ${error.message}`);
+      } else {
+        console.error("Unknown error:", error);
+      }
+
+      // Cleanup on error
+      try {
+        await ChainManager.cleanup();
+      } catch (cleanupError) {
+        console.error("Additional error during cleanup:", cleanupError);
+      }
+
+      throw error;
+    }
   });
 
-export {};
+export { };

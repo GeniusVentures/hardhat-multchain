@@ -2,142 +2,366 @@ import { JsonRpcProvider } from "@ethersproject/providers"; // Use 'ethers' for 
 import { fork, ChildProcess } from "child_process";
 import { HardhatUserConfig } from "hardhat/types";
 import { createLogger, format, transports, Logger } from "winston";
-import { ChainConfig, MultiChainProviders } from "./type-extensions";
+import { ChainConfig, MultiChainProviders, ChainStatus, ValidationResult } from "./type-extensions";
+
+// Custom error classes
+export class ChainConfigError extends Error {
+  constructor(chainName: string, issue: string) {
+    super(`Chain '${chainName}' configuration error: ${issue}`);
+    this.name = 'ChainConfigError';
+  }
+}
+
+export class NetworkConnectionError extends Error {
+  public readonly originalError: Error;
+
+  constructor(url: string, originalError: Error) {
+    super(`Failed to connect to network at ${url}: ${originalError.message}`);
+    this.name = 'NetworkConnectionError';
+    this.originalError = originalError;
+  }
+}
+
+export class ProcessCleanupError extends Error {
+  public readonly originalError: Error;
+
+  constructor(chainName: string, originalError: Error) {
+    super(`Failed to cleanup process for chain '${chainName}': ${originalError.message}`);
+    this.name = 'ProcessCleanupError';
+    this.originalError = originalError;
+  }
+}
 
 class ChainManager {
   private static instances: MultiChainProviders = new Map();
   private static processes: Map<string, ChildProcess> = new Map();
+  private static chainStatuses: Map<string, ChainStatus> = new Map();
   private static forkPort = 8546;
+
+  /**
+   * Validates chain name format
+   */
+  private static validateChainName(chainName: string): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!chainName || chainName.trim().length === 0) {
+      errors.push("Chain name cannot be empty");
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(chainName)) {
+      errors.push("Chain name can only contain letters, numbers, underscores, and hyphens");
+    }
+
+    if (chainName.length > 50) {
+      warnings.push("Chain name is quite long, consider using a shorter name");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Validates RPC URL format
+   */
+  private static validateRpcUrl(url: string): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!url || url.trim().length === 0) {
+      errors.push("RPC URL cannot be empty");
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+      if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsedUrl.protocol)) {
+        errors.push("RPC URL must use http, https, ws, or wss protocol");
+      }
+    } catch (error) {
+      errors.push("Invalid RPC URL format");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Validates if a port is available and in valid range
+   */
+  private static validatePort(port: number): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (port < 1024 || port > 65535) {
+      errors.push("Port must be between 1024 and 65535");
+    }
+
+    if (port < 8000) {
+      warnings.push("Using a port below 8000 might conflict with system services");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
 
   static async setupChains(chains: string[], config: HardhatUserConfig, logsDir?: string): Promise<MultiChainProviders> {
     if (this.instances.size > 0) return this.instances;
 
+    // Validate input
+    if (!chains || chains.length === 0) {
+      throw new ChainConfigError("general", "No chains specified for setup");
+    }
+
+    // Validate all chain names first
+    for (const chainName of chains) {
+      const validation = this.validateChainName(chainName);
+      if (!validation.isValid) {
+        throw new ChainConfigError(chainName, validation.errors.join(", "));
+      }
+
+      // Log warnings
+      validation.warnings.forEach(warning =>
+        console.warn(`⚠️ Warning for chain '${chainName}': ${warning}`)
+      );
+    }
+
     const processes: Record<string, ChildProcess> = {};
     const rpcUrls: Record<string, string> = {};
 
-    await Promise.all(
-      chains.map(async (chainName, index) => {
-        let logger: Logger | undefined;
-        if (logsDir) {
-          logger = this.createForkLogger(chainName, logsDir);
-        } 
-        // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
-        if (chainName === "hardhat") {
-          const providerUrl = 'http://127.0.0.1:8545';
-          console.log(`🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
-          const provider = new JsonRpcProvider(providerUrl);
-          this.instances.set(chainName, provider);
-          return;
-        }
-          
-        this.forkPort = this.forkPort + index;
-        const chainConfig = this.getChainConfig(chainName, config);
-        if (!chainConfig) {
-          throw new Error(`Unsupported chain: ${chainName}`);
-        }
+    try {
+      await Promise.all(
+        chains.map(async (chainName, index) => {
+          try {
+            let logger: Logger | undefined;
+            if (logsDir) {
+              logger = this.createForkLogger(chainName, logsDir);
+            }
 
-        console.log(`🛠️ Forking ${chainName} on port ${this.forkPort}...`);
+            // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
+            if (chainName === "hardhat") {
+              const providerUrl = 'http://127.0.0.1:8545';
+              console.log(`🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
 
-        // TODO create a hardhat fork process more directly rather than using the CLI
-        const child = fork("node_modules/hardhat/internal/cli/cli.js", [
-            "node",
-            "--fork",
-            chainConfig.rpcUrl,
-            "--port",
-            this.forkPort.toString(),
-            ...(chainConfig.blockNumber
-              ? ['--fork-block-number', chainConfig.blockNumber.toString()]
-              : []),
-          ],
-          {
-            env: {
-              ...process.env,
-              HH_CHAIN_ID: chainConfig.chainId?.toString() || '31337',
-            },
-            stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
+              // Validate hardhat network is accessible
+              try {
+                await this.waitForNetwork(providerUrl, 5000);
+              } catch (error) {
+                throw new NetworkConnectionError(providerUrl, error as Error);
+              }
+
+              const provider = new JsonRpcProvider(providerUrl);
+              this.instances.set(chainName, provider);
+              this.chainStatuses.set(chainName, {
+                name: chainName,
+                status: 'running',
+                rpcUrl: providerUrl,
+                port: 8545
+              });
+              return;
+            }
+
+            this.forkPort = this.forkPort + index;
+
+            // Validate port
+            const portValidation = this.validatePort(this.forkPort);
+            if (!portValidation.isValid) {
+              throw new ChainConfigError(chainName, `Port validation failed: ${portValidation.errors.join(", ")}`);
+            }
+
+            const chainConfig = this.getChainConfig(chainName, config);
+            if (!chainConfig) {
+              throw new ChainConfigError(chainName, `No configuration found. Ensure RPC URL is configured.`);
+            }
+
+            // Validate RPC URL
+            const urlValidation = this.validateRpcUrl(chainConfig.rpcUrl);
+            if (!urlValidation.isValid) {
+              throw new ChainConfigError(chainName, `RPC URL validation failed: ${urlValidation.errors.join(", ")}`);
+            }
+
+            console.log(`🛠️ Forking ${chainName} on port ${this.forkPort}...`);
+
+            // Initialize chain status
+            this.chainStatuses.set(chainName, {
+              name: chainName,
+              status: 'unknown',
+              rpcUrl: chainConfig.rpcUrl,
+              port: this.forkPort,
+              chainId: chainConfig.chainId,
+              blockNumber: chainConfig.blockNumber
+            });
+
+            // TODO create a hardhat fork process more directly rather than using the CLI
+            const child = fork("node_modules/hardhat/internal/cli/cli.js", [
+              "node",
+              "--fork",
+              chainConfig.rpcUrl,
+              "--port",
+              this.forkPort.toString(),
+              ...(chainConfig.blockNumber
+                ? ['--fork-block-number', chainConfig.blockNumber.toString()]
+                : []),
+            ],
+              {
+                env: {
+                  ...process.env,
+                  HH_CHAIN_ID: chainConfig.chainId?.toString() || '31337',
+                },
+                stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
+              }
+            );
+
+            if (logger !== undefined) {
+              // Handle logs
+              child.stdout?.on('data', (data) => {
+                logger?.info(data.toString().trim());
+              });
+
+              child.stderr?.on('data', (data) => {
+                // // Separate error log (There shouldn't be errors so we leave it commented out)
+                // logger?.error(data.toString().trim());
+                logger?.info(data.toString().trim());
+              });
+
+              child.on("exit", (code) => {
+                logger?.info(`Forked process for ${chainName} exited with code ${code}`);
+                this.chainStatuses.set(chainName, {
+                  ...this.chainStatuses.get(chainName)!,
+                  status: code === 0 ? 'stopped' : 'error'
+                });
+              });
+
+              child.on("error", (err) => {
+                // // Separate error log (There shouldn't be errors so we leave it commented out)
+                // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
+
+                logger?.info(`Error in forked process for ${chainName}: ${err.message}`);
+                this.chainStatuses.set(chainName, {
+                  ...this.chainStatuses.get(chainName)!,
+                  status: 'error'
+                });
+              });
+            }
+
+            // Store process info
+            this.processes.set(chainName, child);
+            this.chainStatuses.set(chainName, {
+              ...this.chainStatuses.get(chainName)!,
+              processId: child.pid
+            });
+
+            const providerUrl = 'http://127.0.0.1:' + this.forkPort.toString();
+
+            try {
+              await this.waitForNetwork(providerUrl, 100000);
+              this.chainStatuses.set(chainName, {
+                ...this.chainStatuses.get(chainName)!,
+                status: 'running'
+              });
+            } catch (err) {
+              this.chainStatuses.set(chainName, {
+                ...this.chainStatuses.get(chainName)!,
+                status: 'error'
+              });
+
+              if (err instanceof Error) {
+                console.log(`Network validation failed for ${chainName}: ${err.message}`);
+                throw new NetworkConnectionError(providerUrl, err);
+              } else {
+                const error = new Error(`Network validation failed for ${chainName}: ${String(err)}`);
+                throw new NetworkConnectionError(providerUrl, error);
+              }
+            }
+
+            console.log(`🔗 Connecting to ${chainName} at ${providerUrl}`);
+            const provider = new JsonRpcProvider(providerUrl);
+            this.instances.set(chainName, provider);
+          } catch (error) {
+            // Clean up on individual chain failure
+            const process = this.processes.get(chainName);
+            if (process) {
+              try {
+                process.kill("SIGINT");
+              } catch (killError) {
+                console.warn(`Failed to kill process for ${chainName}:`, killError);
+              }
+              this.processes.delete(chainName);
+            }
+
+            this.chainStatuses.set(chainName, {
+              name: chainName,
+              status: 'error',
+              rpcUrl: '',
+            });
+
+            throw error; // Re-throw to stop setup
           }
-        );
+        })
+      );
+    } catch (error) {
+      // If any chain fails, cleanup all
+      await this.cleanup();
+      throw error;
+    }
 
-        if (logger !== undefined) {
-          // Handle logs
-          child.stdout?.on('data', (data) => {
-            logger?.info(data.toString().trim());
-          });
-
-          child.stderr?.on('data', (data) => {
-            // // Separate error log (There shouldn't be errors so we leave it commented out)
-            // logger?.error(data.toString().trim());
-            logger?.info(data.toString().trim());
-          });
-
-          child.on("exit", (code) => {
-            logger?.info(`Forked process for ${chainName} exited with code ${code}`);
-          });
-
-          child.on("error", (err) => {
-            // // Separate error log (There shouldn't be errors so we leave it commented out)
-            // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
-
-            logger?.info(`Error in forked process for ${chainName}: ${err.message}`);
-          });
-        }
-
-        this.processes.set(chainName, child);
-
-        const providerUrl = 'http://127.0.0.1:' + this.forkPort.toString();
-
-        try {
-          await this.waitForNetwork(providerUrl, 100000);
-        //   console.log(`Local ${chainName} network is ready at ${rpcUrls[chainName]}.`);
-        } catch (err) {
-          if (err instanceof Error) {
-            console.log(`Network validation failed for ${chainName}: ${err.message}`);
-          } else {
-            console.log(`Network validation failed for ${chainName}: ${String(err)}`);
-          }
-          throw err;
-        }
-
-        console.log(`🔗 Connecting to ${chainName} at ${providerUrl}`);
-        const provider = new JsonRpcProvider(providerUrl);
-        this.instances.set(chainName, provider);
-        this.processes.set(chainName, child);
-      })
-    )
     return this.instances;
   }
 
   private static getChainConfig(chainName: string, config: HardhatUserConfig): ChainConfig | null {
-    const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
-    const chainId = config.chainManager?.chains?.[chainName]?.chainId ??
-      parseInt(process.env[configChainId] || "31337");
-    const envRpcUrl = chainName.toUpperCase() + '_RPC';
-    const rpcUrl = config.chainManager?.chains?.[chainName]?.rpcUrl ??
-      process.env[`${envRpcUrl}`];
-    if (!rpcUrl) {
-      throw new Error(`Missing required rpcUrl for ${chainName} or ${chainName}_RPC in .env file.`);
+    try {
+      const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
+      const chainId = config.chainManager?.chains?.[chainName]?.chainId ??
+        parseInt(process.env[configChainId] || "31337");
+
+      const envRpcUrl = chainName.toUpperCase() + '_RPC';
+      const rpcUrl = config.chainManager?.chains?.[chainName]?.rpcUrl ??
+        process.env[`${envRpcUrl}`];
+
+      if (!rpcUrl) {
+        throw new ChainConfigError(chainName, `Missing required rpcUrl for ${chainName} or ${envRpcUrl} in .env file.`);
+      }
+
+      const configBlockNumber = chainName.toUpperCase() + '_BLOCK_NUMBER';
+      const blockNumberEnv = process.env[`${chainName.toUpperCase()}_BLOCK`];
+      const blockNumber = config.chainManager?.chains?.[chainName]?.blockNumber ??
+        (blockNumberEnv ? parseInt(blockNumberEnv) : undefined);
+
+      if (!blockNumber) {
+        console.log(`No fork block number configured for ${chainName} in either hardhat.config or .env file. No cache, downloading latest blocks.`);
+      }
+
+      const chainConfig: ChainConfig = {
+        rpcUrl: rpcUrl!,
+        blockNumber: blockNumber,
+        chainId: chainId,
+      };
+
+      return chainConfig;
+    } catch (error) {
+      if (error instanceof ChainConfigError) {
+        throw error;
+      }
+      throw new ChainConfigError(chainName, `Configuration parsing failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    const configBlockNumber = chainName.toUpperCase() + '_BLOCK_NUMBER';
-    const blockNumber = config.chainManager?.chains?.[chainName]?.blockNumber ??
-      parseInt(process.env[`${chainName.toUpperCase()}_BLOCK`] || "0");
-    if (!blockNumber) {
-      // TODO make optional to use file logger if it is configured
-      console.log(`No fork block number configured for ${chainName} in either hardhat.config or .env file. No cache, downloading latest blocks.`);
-    }
-
-    const chainConfigs: Record<string, ChainConfig> = {
-      [chainName]: {
-      rpcUrl: rpcUrl!,
-      blockNumber: blockNumber,
-      chainId: chainId,
-      },
-    };
-
-    return chainConfigs[chainName] || null;
   }
 
   static getProvider(chainName: string): JsonRpcProvider | undefined {
+    // Validate chain name
+    const validation = this.validateChainName(chainName);
+    if (!validation.isValid) {
+      console.warn(`Invalid chain name '${chainName}': ${validation.errors.join(", ")}`);
+      return undefined;
+    }
+
     return this.instances.get(chainName);
   }
 
@@ -145,19 +369,112 @@ class ChainManager {
     return this.instances;
   }
 
-  static cleanup(): void {
-    console.log("🧹 Cleaning up forked chains...");
-    this.processes.forEach((process, name) => {
-      console.log(`💀 Killing forked process for: ${name}`);
-      process.kill("SIGINT");
-    });
-    this.processes.clear();
-    this.instances.clear();
+  /**
+   * Get the status of a specific chain
+   */
+  static getChainStatus(chainName: string): ChainStatus['status'] {
+    const status = this.chainStatuses.get(chainName);
+    return status?.status || 'unknown';
   }
 
-  static  async waitForNetwork(url: string, timeout: number = 30000): Promise<void> {
+  /**
+   * Get detailed status information for a chain
+   */
+  static getChainStatusDetails(chainName: string): ChainStatus | undefined {
+    return this.chainStatuses.get(chainName);
+  }
+
+  /**
+   * Get status for all chains
+   */
+  static getAllChainStatuses(): Map<string, ChainStatus> {
+    return new Map(this.chainStatuses);
+  }
+
+  /**
+   * Validate network connectivity
+   */
+  static async validateNetwork(url: string, timeout: number = 30000): Promise<boolean> {
+    try {
+      await this.waitForNetwork(url, timeout);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async cleanup(): Promise<void> {
+    console.log("🧹 Cleaning up forked chains...");
+
+    const cleanupPromises: Promise<void>[] = [];
+    const errors: ProcessCleanupError[] = [];
+
+    this.processes.forEach((process, name) => {
+      console.log(`💀 Killing forked process for: ${name}`);
+
+      const cleanupPromise = new Promise<void>((resolve) => {
+        if (!process || process.killed) {
+          resolve();
+          return;
+        }
+
+        // Set a timeout for process cleanup
+        const timeout = setTimeout(() => {
+          if (!process.killed) {
+            try {
+              process.kill("SIGKILL"); // Force kill if SIGINT didn't work
+              console.warn(`Force killed process for ${name}`);
+            } catch (error) {
+              errors.push(new ProcessCleanupError(name, error as Error));
+            }
+          }
+          resolve();
+        }, 5000);
+
+        process.on('exit', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+
+        try {
+          process.kill("SIGINT");
+        } catch (error) {
+          clearTimeout(timeout);
+          errors.push(new ProcessCleanupError(name, error as Error));
+          resolve();
+        }
+      });
+
+      cleanupPromises.push(cleanupPromise);
+    });
+
+    // Wait for all cleanup operations
+    await Promise.all(cleanupPromises);
+
+    // Clear all maps
+    this.processes.clear();
+    this.instances.clear();
+    this.chainStatuses.clear();
+
+    // Log errors if any occurred during cleanup
+    if (errors.length > 0) {
+      console.warn(`Cleanup completed with ${errors.length} errors:`);
+      errors.forEach(error => console.warn(`  - ${error.message}`));
+    } else {
+      console.log("✅ All forked chains cleaned up successfully");
+    }
+  }
+
+  static async waitForNetwork(url: string, timeout: number = 30000): Promise<void> {
+    // Validate URL first
+    const urlValidation = this.validateRpcUrl(url);
+    if (!urlValidation.isValid) {
+      throw new NetworkConnectionError(url, new Error(`Invalid URL: ${urlValidation.errors.join(", ")}`));
+    }
+
     const provider = new JsonRpcProvider(url);
     const startTime = Date.now();
+    let lastError: Error | undefined;
 
     while (Date.now() - startTime < timeout) {
       try {
@@ -165,12 +482,16 @@ class ChainManager {
         console.log(`Network at ${url} is ready.`);
         return;
       } catch (error) {
+        lastError = error as Error;
         console.log(`Waiting for network at ${url}...`);
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
       }
     }
 
-    throw new Error(`Network at ${url} did not respond within ${timeout}ms.`);
+    throw new NetworkConnectionError(
+      url,
+      lastError || new Error(`Network at ${url} did not respond within ${timeout}ms`)
+    );
   }
 
   static createForkLogger = (forkName: string, logDir?: string): Logger => {

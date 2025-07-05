@@ -6,12 +6,21 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    // "rootDir": "./src",
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
     "rootDirs": ["./src", "./test"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules", "coverage", ".nyc_output"],
   "include": [
     "./test/**/*.ts",
     "./src/**/*.ts"
