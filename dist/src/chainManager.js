@@ -4,7 +4,9 @@ exports.ProcessCleanupError = exports.NetworkConnectionError = exports.ChainConf
 const providers_1 = require("@ethersproject/providers"); // Use 'ethers' for v6, '@ethersproject/providers' for v5
 const child_process_1 = require("child_process");
 const winston_1 = require("winston");
-// Custom error classes
+/**
+ * Error thrown when chain configuration is invalid or missing
+ */
 class ChainConfigError extends Error {
     constructor(chainName, issue) {
         super(`Chain '${chainName}' configuration error: ${issue}`);
@@ -12,6 +14,9 @@ class ChainConfigError extends Error {
     }
 }
 exports.ChainConfigError = ChainConfigError;
+/**
+ * Error thrown when network connection fails
+ */
 class NetworkConnectionError extends Error {
     constructor(url, originalError) {
         super(`Failed to connect to network at ${url}: ${originalError.message}`);
@@ -20,6 +25,9 @@ class NetworkConnectionError extends Error {
     }
 }
 exports.NetworkConnectionError = NetworkConnectionError;
+/**
+ * Error thrown when process cleanup fails
+ */
 class ProcessCleanupError extends Error {
     constructor(chainName, originalError) {
         super(`Failed to cleanup process for chain '${chainName}': ${originalError.message}`);
@@ -28,9 +36,30 @@ class ProcessCleanupError extends Error {
     }
 }
 exports.ProcessCleanupError = ProcessCleanupError;
+/**
+ * ChainManager is responsible for managing multiple blockchain forks and their providers.
+ * It handles the lifecycle of forked processes, network validation, and provider management.
+ *
+ * @example
+ * ```typescript
+ * // Setup multiple chains
+ * const providers = await ChainManager.setupChains(['ethereum', 'polygon'], config);
+ *
+ * // Get a specific provider
+ * const ethProvider = ChainManager.getProvider('ethereum');
+ *
+ * // Check chain status
+ * const status = ChainManager.getChainStatus('ethereum');
+ *
+ * // Cleanup when done
+ * await ChainManager.cleanup();
+ * ```
+ */
 class ChainManager {
     /**
-     * Validates chain name format
+     * Validates chain name format and constraints
+     * @param chainName The chain name to validate
+     * @returns ValidationResult with errors and warnings
      */
     static validateChainName(chainName) {
         const errors = [];
@@ -51,7 +80,9 @@ class ChainManager {
         };
     }
     /**
-     * Validates RPC URL format
+     * Validates RPC URL format and protocol
+     * @param url The RPC URL to validate
+     * @returns ValidationResult with errors and warnings
      */
     static validateRpcUrl(url) {
         const errors = [];
@@ -65,7 +96,7 @@ class ChainManager {
                 errors.push("RPC URL must use http, https, ws, or wss protocol");
             }
         }
-        catch (error) {
+        catch (_a) {
             errors.push("Invalid RPC URL format");
         }
         return {
@@ -76,6 +107,8 @@ class ChainManager {
     }
     /**
      * Validates if a port is available and in valid range
+     * @param port The port number to validate
+     * @returns ValidationResult with errors and warnings
      */
     static validatePort(port) {
         const errors = [];
@@ -92,6 +125,15 @@ class ChainManager {
             warnings
         };
     }
+    /**
+     * Sets up multiple blockchain forks based on provided configuration
+     * @param chains Array of chain names to fork
+     * @param config Hardhat user configuration containing chain settings
+     * @param logsDir Optional directory for storing fork logs
+     * @returns Promise resolving to Map of chain names to JsonRpcProviders
+     * @throws ChainConfigError when chain configuration is invalid
+     * @throws NetworkConnectionError when network connection fails
+     */
     static async setupChains(chains, config, logsDir) {
         if (this.instances.size > 0)
             return this.instances;
@@ -108,8 +150,6 @@ class ChainManager {
             // Log warnings
             validation.warnings.forEach(warning => console.warn(`⚠️ Warning for chain '${chainName}': ${warning}`));
         }
-        const processes = {};
-        const rpcUrls = {};
         try {
             await Promise.all(chains.map(async (chainName, index) => {
                 var _a, _b, _c;
@@ -268,6 +308,13 @@ class ChainManager {
         }
         return this.instances;
     }
+    /**
+     * Retrieves chain configuration from Hardhat config or environment variables
+     * @param chainName Name of the chain to get configuration for
+     * @param config Hardhat user configuration
+     * @returns ChainConfig object or null if not found
+     * @throws ChainConfigError when configuration is invalid or missing
+     */
     static getChainConfig(chainName, config) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         try {
@@ -278,7 +325,6 @@ class ChainManager {
             if (!rpcUrl) {
                 throw new ChainConfigError(chainName, `Missing required rpcUrl for ${chainName} or ${envRpcUrl} in .env file.`);
             }
-            const configBlockNumber = chainName.toUpperCase() + '_BLOCK_NUMBER';
             const blockNumberEnv = process.env[`${chainName.toUpperCase()}_BLOCK`];
             const blockNumber = (_m = (_l = (_k = (_j = config.chainManager) === null || _j === void 0 ? void 0 : _j.chains) === null || _k === void 0 ? void 0 : _k[chainName]) === null || _l === void 0 ? void 0 : _l.blockNumber) !== null && _m !== void 0 ? _m : (blockNumberEnv ? parseInt(blockNumberEnv) : undefined);
             if (!blockNumber) {
@@ -298,6 +344,11 @@ class ChainManager {
             throw new ChainConfigError(chainName, `Configuration parsing failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
+    /**
+     * Gets a provider for a specific chain
+     * @param chainName Name of the chain to get provider for
+     * @returns JsonRpcProvider instance or undefined if chain is not found
+     */
     static getProvider(chainName) {
         // Validate chain name
         const validation = this.validateChainName(chainName);
@@ -307,11 +358,17 @@ class ChainManager {
         }
         return this.instances.get(chainName);
     }
+    /**
+     * Gets all active providers
+     * @returns Map of chain names to JsonRpcProvider instances
+     */
     static getProviders() {
         return this.instances;
     }
     /**
      * Get the status of a specific chain
+     * @param chainName Name of the chain to check status for
+     * @returns Current status of the chain
      */
     static getChainStatus(chainName) {
         const status = this.chainStatuses.get(chainName);
@@ -319,28 +376,38 @@ class ChainManager {
     }
     /**
      * Get detailed status information for a chain
+     * @param chainName Name of the chain to get detailed status for
+     * @returns Detailed ChainStatus object or undefined if chain not found
      */
     static getChainStatusDetails(chainName) {
         return this.chainStatuses.get(chainName);
     }
     /**
      * Get status for all chains
+     * @returns Map of chain names to their detailed status information
      */
     static getAllChainStatuses() {
         return new Map(this.chainStatuses);
     }
     /**
      * Validate network connectivity
+     * @param url The network URL to validate
+     * @param timeout Timeout in milliseconds (default: 30000)
+     * @returns Promise resolving to true if network is accessible, false otherwise
      */
     static async validateNetwork(url, timeout = 30000) {
         try {
             await this.waitForNetwork(url, timeout);
             return true;
         }
-        catch (error) {
+        catch (_a) {
             return false;
         }
     }
+    /**
+     * Cleans up all forked processes and providers
+     * @returns Promise that resolves when cleanup is complete
+     */
     static async cleanup() {
         console.log("🧹 Cleaning up forked chains...");
         const cleanupPromises = [];
@@ -372,9 +439,9 @@ class ChainManager {
                 try {
                     process.kill("SIGINT");
                 }
-                catch (error) {
+                catch (killError) {
                     clearTimeout(timeout);
-                    errors.push(new ProcessCleanupError(name, error));
+                    errors.push(new ProcessCleanupError(name, killError));
                     resolve();
                 }
             });
@@ -395,6 +462,13 @@ class ChainManager {
             console.log("✅ All forked chains cleaned up successfully");
         }
     }
+    /**
+     * Waits for a network to become available
+     * @param url The network URL to wait for
+     * @param timeout Timeout in milliseconds (default: 30000)
+     * @returns Promise that resolves when network is ready
+     * @throws NetworkConnectionError when network is not accessible within timeout
+     */
     static async waitForNetwork(url, timeout = 30000) {
         // Validate URL first
         const urlValidation = this.validateRpcUrl(url);
@@ -423,6 +497,12 @@ ChainManager.instances = new Map();
 ChainManager.processes = new Map();
 ChainManager.chainStatuses = new Map();
 ChainManager.forkPort = 8546;
+/**
+ * Creates a winston logger instance for a specific fork
+ * @param forkName Name of the fork to create logger for
+ * @param logDir Optional directory to store logs (default: ./logs)
+ * @returns Winston Logger instance
+ */
 ChainManager.createForkLogger = (forkName, logDir) => {
     return (0, winston_1.createLogger)({
         level: "info",

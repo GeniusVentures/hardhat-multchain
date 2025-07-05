@@ -16,9 +16,9 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "mocha --exit --recursive 'test/**/*.test.ts'",
-    "test:coverage": "nyc mocha --exit --recursive 'test/**/*.test.ts'",
-    "test:watch": "mocha --exit --recursive 'test/**/*.test.ts' --watch",
+    "test": "mocha",
+    "test:coverage": "nyc mocha",
+    "test:watch": "mocha --watch",
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
     "format": "prettier --write 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",

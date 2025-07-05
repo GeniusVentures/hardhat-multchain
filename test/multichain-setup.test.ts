@@ -4,7 +4,6 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import ChainManager, { ChainConfigError, NetworkConnectionError, ProcessCleanupError } from "../src/chainManager";
 // Don't import the full plugin here to avoid hardhat context issues
 // import "../src/index"; // Ensure the plugin is loaded
-import { useEnvironment } from "./helpers";
 import { JsonRpcProvider } from "@ethersproject/providers";
 
 let hre: HardhatRuntimeEnvironment;
@@ -36,7 +35,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
     // Cleanup any running chains
     try {
       await ChainManager.cleanup();
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors in tests
     }
   });
@@ -47,9 +46,9 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
         try {
           await ChainManager.setupChains([""], hre.userConfig);
           expect.fail("Expected error was not thrown");
-        } catch (error) {
-          expect(error).to.be.instanceOf(ChainConfigError);
-          expect((error as ChainConfigError).message).to.include("Chain name cannot be empty");
+        } catch (chainConfigError) {
+          expect(chainConfigError).to.be.instanceOf(ChainConfigError);
+          expect((chainConfigError as ChainConfigError).message).to.include("Chain name cannot be empty");
         }
       });
 
@@ -73,7 +72,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
               }
             }
           }
-        } as any; // Use any to bypass type checking for test
+        } as unknown as HardhatRuntimeEnvironment['userConfig']; // Better typing
 
         try {
           await ChainManager.setupChains(["testchain"], configWithoutRpc);
@@ -90,8 +89,8 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
 
         const providers = await ChainManager.setupChains(["hardhat"], hre.userConfig);
 
-        expect(providers.has("hardhat")).to.be.true;
-        expect(waitForNetworkStub.calledWith("http://127.0.0.1:8545")).to.be.true;
+        void expect(providers.has("hardhat")).to.be.true;
+        void expect(waitForNetworkStub.calledWith("http://127.0.0.1:8545"), "waitForNetwork should be called with correct URL").to.be.true;
 
         waitForNetworkStub.restore();
       });
@@ -110,13 +109,13 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
       it("should return undefined for inactive chain", function () {
         const provider = ChainManager.getProvider("nonexistent");
 
-        expect(provider).to.be.undefined;
+        void expect(provider).to.be.undefined;
       });
 
       it("should handle invalid chain names gracefully", function () {
         const provider = ChainManager.getProvider("");
 
-        expect(provider).to.be.undefined;
+        void expect(provider).to.be.undefined;
       });
     });
 
@@ -137,12 +136,12 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
     describe("validateNetwork", function () {
       it("should return false for invalid URL", async function () {
         const isValid = await ChainManager.validateNetwork("invalid-url");
-        expect(isValid).to.be.false;
+        void expect(isValid).to.be.false;
       });
 
       it("should return false for unreachable network", async function () {
         const isValid = await ChainManager.validateNetwork("http://localhost:99999", 1000);
-        expect(isValid).to.be.false;
+        void expect(isValid).to.be.false;
       });
     });
 
@@ -200,7 +199,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
 
     it("should throw error for unknown network in getProvider", function () {
       const provider = ChainManager.getProvider("unknown");
-      expect(provider).to.be.undefined;
+      void expect(provider).to.be.undefined;
     });
   });
 });

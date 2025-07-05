@@ -1,5 +1,5 @@
 import { extendEnvironment, extendConfig, task } from "hardhat/config";
-import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { lazyObject } from "hardhat/plugins";
 import ChainManager, { ChainConfigError, NetworkConnectionError, ProcessCleanupError } from "./chainManager";

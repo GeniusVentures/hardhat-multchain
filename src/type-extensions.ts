@@ -1,8 +1,6 @@
 import "hardhat/types/config";
 import "hardhat/types/runtime";
-import { EthereumProvider } from "hardhat/types/provider";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { HardhatUserConfig } from "hardhat/types";
 import ChainManager from "./chainManager";
 
 export interface ChainConfig {

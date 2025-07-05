@@ -29,6 +29,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = require("chai");
 const sinon_1 = __importDefault(require("sinon"));
 const chainManager_1 = __importStar(require("../src/chainManager"));
+// Don't import the full plugin here to avoid hardhat context issues
+// import "../src/index"; // Ensure the plugin is loaded
 const providers_1 = require("@ethersproject/providers");
 let hre;
 describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
@@ -57,7 +59,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
         try {
             await chainManager_1.default.cleanup();
         }
-        catch (error) {
+        catch (_a) {
             // Ignore cleanup errors in tests
         }
     });
@@ -68,9 +70,9 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
                     await chainManager_1.default.setupChains([""], hre.userConfig);
                     chai_1.expect.fail("Expected error was not thrown");
                 }
-                catch (error) {
-                    (0, chai_1.expect)(error).to.be.instanceOf(chainManager_1.ChainConfigError);
-                    (0, chai_1.expect)(error.message).to.include("Chain name cannot be empty");
+                catch (chainConfigError) {
+                    (0, chai_1.expect)(chainConfigError).to.be.instanceOf(chainManager_1.ChainConfigError);
+                    (0, chai_1.expect)(chainConfigError.message).to.include("Chain name cannot be empty");
                 }
             });
             it("should validate chain names with special characters", async function () {
@@ -93,7 +95,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
                             }
                         }
                     }
-                }; // Use any to bypass type checking for test
+                }; // Better typing
                 try {
                     await chainManager_1.default.setupChains(["testchain"], configWithoutRpc);
                     chai_1.expect.fail("Expected error was not thrown");
@@ -107,8 +109,8 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
                 // Mock the waitForNetwork method to simulate hardhat network being available
                 const waitForNetworkStub = sinon_1.default.stub(chainManager_1.default, "waitForNetwork").resolves();
                 const providers = await chainManager_1.default.setupChains(["hardhat"], hre.userConfig);
-                (0, chai_1.expect)(providers.has("hardhat")).to.be.true;
-                (0, chai_1.expect)(waitForNetworkStub.calledWith("http://127.0.0.1:8545")).to.be.true;
+                void (0, chai_1.expect)(providers.has("hardhat")).to.be.true;
+                void (0, chai_1.expect)(waitForNetworkStub.calledWith("http://127.0.0.1:8545"), "waitForNetwork should be called with correct URL").to.be.true;
                 waitForNetworkStub.restore();
             });
         });
@@ -121,11 +123,11 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
             });
             it("should return undefined for inactive chain", function () {
                 const provider = chainManager_1.default.getProvider("nonexistent");
-                (0, chai_1.expect)(provider).to.be.undefined;
+                void (0, chai_1.expect)(provider).to.be.undefined;
             });
             it("should handle invalid chain names gracefully", function () {
                 const provider = chainManager_1.default.getProvider("");
-                (0, chai_1.expect)(provider).to.be.undefined;
+                void (0, chai_1.expect)(provider).to.be.undefined;
             });
         });
         describe("getChainStatus", function () {
@@ -143,11 +145,11 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
         describe("validateNetwork", function () {
             it("should return false for invalid URL", async function () {
                 const isValid = await chainManager_1.default.validateNetwork("invalid-url");
-                (0, chai_1.expect)(isValid).to.be.false;
+                void (0, chai_1.expect)(isValid).to.be.false;
             });
             it("should return false for unreachable network", async function () {
                 const isValid = await chainManager_1.default.validateNetwork("http://localhost:99999", 1000);
-                (0, chai_1.expect)(isValid).to.be.false;
+                void (0, chai_1.expect)(isValid).to.be.false;
             });
         });
         describe("cleanup", function () {
@@ -195,7 +197,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
         });
         it("should throw error for unknown network in getProvider", function () {
             const provider = chainManager_1.default.getProvider("unknown");
-            (0, chai_1.expect)(provider).to.be.undefined;
+            void (0, chai_1.expect)(provider).to.be.undefined;
         });
     });
 });
