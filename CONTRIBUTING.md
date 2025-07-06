@@ -14,22 +14,26 @@ Thank you for your interest in contributing to hardhat-multichain! This document
 
 1. Fork the repository
 2. Clone your fork:
+
    ```bash
    git clone https://github.com/your-username/hardhat-multichain.git
    cd hardhat-multichain
    ```
 
 3. Install dependencies:
+
    ```bash
    npm install
    ```
 
 4. Build the project:
+
    ```bash
    npm run build
    ```
 
 5. Run tests:
+
    ```bash
    npm test
    ```
@@ -93,14 +97,15 @@ When filing a bug report, please include:
 
 
 **Error Messages:**
-```
+
+```text
 [Paste error messages here]
 ```
 
 **Configuration:**
+
 ```typescript
 // Your hardhat.config.ts
-```
 ```
 
 ## ✨ Feature Requests
@@ -154,7 +159,6 @@ Brief description of changes
 
 ## Breaking Changes
 List any breaking changes and migration steps
-```
 
 ## 📚 Documentation
 
@@ -167,6 +171,7 @@ List any breaking changes and migration steps
 ### README Updates
 
 When updating the README:
+
 - Keep it concise but comprehensive
 - Include working examples
 - Update table of contents if needed
@@ -238,6 +243,7 @@ describe("Feature Name", function () {
 ### Version Numbering
 
 We follow [Semantic Versioning](https://semver.org/):
+
 - **MAJOR**: Breaking changes
 - **MINOR**: New features (backward compatible)
 - **PATCH**: Bug fixes (backward compatible)
@@ -258,7 +264,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## 📋 Project Structure
 
-```
+```bash
 src/
 ├── chainManager.ts      # Core chain management
 ├── index.ts            # Main plugin entry point
@@ -284,6 +290,7 @@ docs/
 ## 🏆 Recognition
 
 Contributors will be recognized in:
+
 - README.md contributors section
 - Release notes
 - Special mentions for significant contributions

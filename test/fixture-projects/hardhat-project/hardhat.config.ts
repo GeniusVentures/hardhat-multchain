@@ -14,10 +14,10 @@ const config: HardhatUserConfig = {
       testnet: {
         rpcUrl: "https://sepolia.infura.io/v3/test",
         chainId: 11155111,
-        blockNumber: 1000000
-      }
-    }
-  }
+        blockNumber: 1000000,
+      },
+    },
+  },
 };
 
 export default config;

@@ -11,19 +11,24 @@ This example demonstrates how to set up multiple blockchain forks with complex c
 
 ## Setup
 
-1. Install dependencies:
+### 1. Install dependencies
+
 ```bash
 npm install
 ```
 
-2. Copy environment variables:
+### 2. Copy environment variables
+
 ```bash
 cp .env.example .env
 ```
 
-3. Configure your RPC endpoints in `.env` (optional - defaults are provided)
+### 3. Configure your RPC endpoints
 
-4. Run the example:
+Configure Endpoints in `.env` (optional - defaults are provided)
+
+### 4. Run the example
+
 ```bash
 npx hardhat test
 ```
@@ -31,6 +36,7 @@ npx hardhat test
 ## Configuration Highlights
 
 ### Block Number Forking
+
 ```typescript
 ethereum: {
   rpcUrl: process.env.ETHEREUM_RPC || "https://ethereum-rpc.publicnode.com",
@@ -40,9 +46,11 @@ ethereum: {
 ```
 
 ### Multiple Networks
+
 The configuration includes 6 different networks, each with appropriate RPC URLs and chain IDs.
 
 ### Environment Variable Support
+
 All RPC URLs can be overridden via environment variables for flexibility across different environments.
 
 ## Best Practices Demonstrated
@@ -55,6 +63,7 @@ All RPC URLs can be overridden via environment variables for flexibility across 
 ## Testing Multiple DeFi Protocols
 
 This setup is ideal for testing:
+
 - Cross-chain bridges
 - Multi-chain yield farming strategies
 - Arbitrage opportunities across networks

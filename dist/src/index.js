@@ -71,7 +71,9 @@ Object.defineProperty(exports, "multichain", { enumerable: true, get: function (
         return;
     }
     const logsDir = logs || undefined;
-    const chainNames = chains.split(",").map((name) => name.trim());
+    const chainNames = chains
+        .split(",")
+        .map((name) => name.trim());
     if (chainNames.length === 0) {
         console.log("No valid chain names provided.");
         return;

@@ -46,11 +46,11 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
                         testnet: {
                             rpcUrl: "https://sepolia.infura.io/v3/test",
                             chainId: 11155111,
-                            blockNumber: 1000000
-                        }
-                    }
-                }
-            }
+                            blockNumber: 1000000,
+                        },
+                    },
+                },
+            },
         };
     });
     afterEach(async function () {
@@ -92,9 +92,9 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", function () {
                             testchain: {
                                 chainId: 1,
                                 rpcUrl: "", // Empty rpcUrl to trigger validation error
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 }; // Better typing
                 try {
                     await chainManager_1.default.setupChains(["testchain"], configWithoutRpc);

@@ -11,7 +11,7 @@ export interface ChainConfig {
 
 export interface ChainStatus {
   name: string;
-  status: 'running' | 'stopped' | 'error' | 'unknown';
+  status: "running" | "stopped" | "error" | "unknown";
   port?: number;
   blockNumber?: number;
   chainId?: number;
@@ -28,7 +28,7 @@ export interface ValidationResult {
 export interface SetupOptions {
   timeout?: number;
   retries?: number;
-  logLevel?: 'silent' | 'error' | 'warn' | 'info' | 'debug';
+  logLevel?: "silent" | "error" | "warn" | "info" | "debug";
 }
 
 export interface MultiChainConfig {

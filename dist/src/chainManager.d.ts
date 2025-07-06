@@ -98,7 +98,7 @@ declare class ChainManager {
      * @param chainName Name of the chain to check status for
      * @returns Current status of the chain
      */
-    static getChainStatus(chainName: string): ChainStatus['status'];
+    static getChainStatus(chainName: string): ChainStatus["status"];
     /**
      * Get detailed status information for a chain
      * @param chainName Name of the chain to get detailed status for

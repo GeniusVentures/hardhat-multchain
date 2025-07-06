@@ -31,7 +31,7 @@ yarn add hardhat-multichain
 
 ## 🛠️ Setup
 
-### 1. Import the plugin in your `hardhat.config.ts`:
+### 1. Import the plugin in your `hardhat.config.ts`
 
 ```typescript
 import "hardhat-multichain";
@@ -240,6 +240,7 @@ npx hardhat test-multichain --chains ethereum,polygon --logs ./logs
 ```
 
 This creates separate log files for each chain:
+
 - `./logs/ethereum-node.log`
 - `./logs/polygon-node.log`
 
@@ -284,21 +285,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Common Issues
 
 #### Network Connection Timeouts
-```
+
+```bash
 Error: Failed to connect to network at http://localhost:8547
 ```
+
 **Solution**: Check your RPC URLs and ensure they're accessible. Increase timeout if needed.
 
 #### Port Already in Use
-```
+
+```bash
 Error: Port 8547 is already in use
 ```
+
 **Solution**: The plugin automatically increments ports, but you may need to close other Hardhat instances.
 
 #### Missing RPC Configuration
-```
+
+```bash
 Error: Missing required rpcUrl for ethereum
 ```
+
 **Solution**: Ensure your `hardhat.config.ts` includes the chain configuration or set environment variables.
 
 ### Getting Help
@@ -309,9 +316,7 @@ Error: Missing required rpcUrl for ethereum
 
 ---
 
-**Made with ❤️ for the Ethereum ecosystem**
-
-#### Parameters:
+#### Parameters
 
 - `--chains` (comma-separated list): Specifies the networks to fork (e.g., `sepolia,amoy`).
 
@@ -331,6 +336,7 @@ Example:
 ```bash
 npx hardhat test-multichain --chains "sepolia,amoy" --logs logs
 ```
+
 ## Environment Extensions
 
 This plugin extends the Hardhat Runtime Environment (HRE) with:
@@ -340,10 +346,9 @@ This plugin extends the Hardhat Runtime Environment (HRE) with:
 
 ## Configuration
 
-This plugin extends the Hardhat User Configuration by adding `chainManager` support. 
+This plugin extends the Hardhat User Configuration by adding `chainManager` support.
 
 There are three fields that can be configured for each chain:
-
 
 Chain RPC URL, a [Mock Chain ID](#mock-chain-id), and Block Number.  By defining the block number, you can specify the block at which the chain should fork and this will then be cached, as this is the behavior for Hardhat.
 
@@ -361,6 +366,7 @@ const config = {
   ...
 };
 ```
+
 ### Mock Chain ID
 
 The use of a Mock Chain ID is to allow for the use of the different chain IDs for the forks for easier identification but generally aren't required.

@@ -2,13 +2,19 @@ import { extendEnvironment, extendConfig, task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { lazyObject } from "hardhat/plugins";
-import ChainManager, { ChainConfigError, NetworkConnectionError, ProcessCleanupError } from "./chainManager";
+import ChainManager, {
+  ChainConfigError,
+  NetworkConnectionError,
+  ProcessCleanupError,
+} from "./chainManager";
 import { MultiChainProviders, MultiChainConfig, TaskArgs } from "./type-extensions"; // Import MultiChainConfig
 
 export function getProvider(networkName: string): JsonRpcProvider {
   const provider = ChainManager.getProvider(networkName);
   if (!provider) {
-    throw new Error(`Provider for network ${networkName} not found. Ensure the chain is properly configured and running.`);
+    throw new Error(
+      `Provider for network ${networkName} not found. Ensure the chain is properly configured and running.`
+    );
   }
   return provider;
 }
@@ -49,8 +55,10 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
       return;
     }
 
-    const logsDir: string | undefined = logs as TaskArgs["logs"] || undefined;
-    const chainNames: string[] = (chains as TaskArgs["chains"]).split(",").map((name: string) => name.trim());
+    const logsDir: string | undefined = (logs as TaskArgs["logs"]) || undefined;
+    const chainNames: string[] = (chains as TaskArgs["chains"])
+      .split(",")
+      .map((name: string) => name.trim());
 
     if (chainNames.length === 0) {
       console.log("No valid chain names provided.");
@@ -120,4 +128,4 @@ task("test-multichain", "Launches multiple forked Hardhat networks")
     }
   });
 
-export { };
+export {};

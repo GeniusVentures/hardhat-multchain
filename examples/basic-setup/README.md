@@ -5,17 +5,20 @@ This example demonstrates the basic setup and usage of hardhat-multichain with t
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
-2. Configure your `.env` file:
+### 2. Configure your `.env` file
+
 ```bash
 cp .env.example .env
 # Edit .env with your RPC URLs
 ```
 
-3. Run the example:
+### 3. Run the example
+
 ```bash
 npx hardhat test-multichain --chains ethereum,polygon
 ```

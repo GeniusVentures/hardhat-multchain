@@ -12,10 +12,10 @@ const config = {
             testnet: {
                 rpcUrl: "https://sepolia.infura.io/v3/test",
                 chainId: 11155111,
-                blockNumber: 1000000
-            }
-        }
-    }
+                blockNumber: 1000000,
+            },
+        },
+    },
 };
 exports.default = config;
 //# sourceMappingURL=hardhat.config.js.map

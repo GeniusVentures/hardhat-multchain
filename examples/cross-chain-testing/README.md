@@ -11,17 +11,20 @@ This example demonstrates how to deploy and test smart contracts across multiple
 
 ## Quick Start
 
-1. Install dependencies:
+### 1. Install dependencies
+
 ```bash
 npm install
 ```
 
-2. Set up environment variables:
+### 2. Set up environment variables
+
 ```bash
 cp .env.example .env
 ```
 
-3. Run cross-chain tests:
+### 3. Run cross-chain tests
+
 ```bash
 npx hardhat test
 ```
@@ -29,25 +32,33 @@ npx hardhat test
 ## What This Example Covers
 
 ### 1. Multi-Chain Contract Deployment
+
 Deploy identical contracts to Ethereum, Polygon, and Arbitrum to test:
+
 - Deployment gas costs across networks
 - Contract functionality consistency
 - Network-specific behaviors
 
 ### 2. Cross-Chain State Management
+
 Test scenarios where:
+
 - Data is stored on one chain and read from another
 - State synchronization across multiple chains
 - Cross-chain event monitoring
 
 ### 3. Gas Cost Comparison
+
 Analyze:
+
 - Deployment costs across different networks
 - Transaction execution costs
 - L1 vs L2 performance differences
 
 ### 4. DeFi Protocol Testing
+
 Perfect for testing:
+
 - Multi-chain yield farming strategies
 - Cross-chain bridge protocols
 - Arbitrage opportunities

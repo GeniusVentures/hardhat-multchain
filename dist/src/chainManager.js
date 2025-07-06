@@ -10,7 +10,7 @@ const winston_1 = require("winston");
 class ChainConfigError extends Error {
     constructor(chainName, issue) {
         super(`Chain '${chainName}' configuration error: ${issue}`);
-        this.name = 'ChainConfigError';
+        this.name = "ChainConfigError";
     }
 }
 exports.ChainConfigError = ChainConfigError;
@@ -20,7 +20,7 @@ exports.ChainConfigError = ChainConfigError;
 class NetworkConnectionError extends Error {
     constructor(url, originalError) {
         super(`Failed to connect to network at ${url}: ${originalError.message}`);
-        this.name = 'NetworkConnectionError';
+        this.name = "NetworkConnectionError";
         this.originalError = originalError;
     }
 }
@@ -31,7 +31,7 @@ exports.NetworkConnectionError = NetworkConnectionError;
 class ProcessCleanupError extends Error {
     constructor(chainName, originalError) {
         super(`Failed to cleanup process for chain '${chainName}': ${originalError.message}`);
-        this.name = 'ProcessCleanupError';
+        this.name = "ProcessCleanupError";
         this.originalError = originalError;
     }
 }
@@ -76,7 +76,7 @@ class ChainManager {
         return {
             isValid: errors.length === 0,
             errors,
-            warnings
+            warnings,
         };
     }
     /**
@@ -92,7 +92,7 @@ class ChainManager {
         }
         try {
             const parsedUrl = new URL(url);
-            if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsedUrl.protocol)) {
+            if (!["http:", "https:", "ws:", "wss:"].includes(parsedUrl.protocol)) {
                 errors.push("RPC URL must use http, https, ws, or wss protocol");
             }
         }
@@ -102,7 +102,7 @@ class ChainManager {
         return {
             isValid: errors.length === 0,
             errors,
-            warnings
+            warnings,
         };
     }
     /**
@@ -122,7 +122,7 @@ class ChainManager {
         return {
             isValid: errors.length === 0,
             errors,
-            warnings
+            warnings,
         };
     }
     /**
@@ -160,7 +160,7 @@ class ChainManager {
                     }
                     // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
                     if (chainName === "hardhat") {
-                        const providerUrl = 'http://127.0.0.1:8545';
+                        const providerUrl = "http://127.0.0.1:8545";
                         console.log(`🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
                         // Validate hardhat network is accessible
                         try {
@@ -173,9 +173,9 @@ class ChainManager {
                         this.instances.set(chainName, provider);
                         this.chainStatuses.set(chainName, {
                             name: chainName,
-                            status: 'running',
+                            status: "running",
                             rpcUrl: providerUrl,
-                            port: 8545
+                            port: 8545,
                         });
                         return;
                     }
@@ -198,11 +198,11 @@ class ChainManager {
                     // Initialize chain status
                     this.chainStatuses.set(chainName, {
                         name: chainName,
-                        status: 'unknown',
+                        status: "unknown",
                         rpcUrl: chainConfig.rpcUrl,
                         port: this.forkPort,
                         chainId: chainConfig.chainId,
-                        blockNumber: chainConfig.blockNumber
+                        blockNumber: chainConfig.blockNumber,
                     });
                     // TODO create a hardhat fork process more directly rather than using the CLI
                     const child = (0, child_process_1.fork)("node_modules/hardhat/internal/cli/cli.js", [
@@ -212,39 +212,39 @@ class ChainManager {
                         "--port",
                         this.forkPort.toString(),
                         ...(chainConfig.blockNumber
-                            ? ['--fork-block-number', chainConfig.blockNumber.toString()]
+                            ? ["--fork-block-number", chainConfig.blockNumber.toString()]
                             : []),
                     ], {
                         env: {
                             ...process.env,
-                            HH_CHAIN_ID: ((_a = chainConfig.chainId) === null || _a === void 0 ? void 0 : _a.toString()) || '31337',
+                            HH_CHAIN_ID: ((_a = chainConfig.chainId) === null || _a === void 0 ? void 0 : _a.toString()) || "31337",
                         },
                         stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
                     });
                     if (logger !== undefined) {
                         // Handle logs
-                        (_b = child.stdout) === null || _b === void 0 ? void 0 : _b.on('data', (data) => {
+                        (_b = child.stdout) === null || _b === void 0 ? void 0 : _b.on("data", data => {
                             logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
                         });
-                        (_c = child.stderr) === null || _c === void 0 ? void 0 : _c.on('data', (data) => {
+                        (_c = child.stderr) === null || _c === void 0 ? void 0 : _c.on("data", data => {
                             // // Separate error log (There shouldn't be errors so we leave it commented out)
                             // logger?.error(data.toString().trim());
                             logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
                         });
-                        child.on("exit", (code) => {
+                        child.on("exit", code => {
                             logger === null || logger === void 0 ? void 0 : logger.info(`Forked process for ${chainName} exited with code ${code}`);
                             this.chainStatuses.set(chainName, {
                                 ...this.chainStatuses.get(chainName),
-                                status: code === 0 ? 'stopped' : 'error'
+                                status: code === 0 ? "stopped" : "error",
                             });
                         });
-                        child.on("error", (err) => {
+                        child.on("error", err => {
                             // // Separate error log (There shouldn't be errors so we leave it commented out)
                             // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
                             logger === null || logger === void 0 ? void 0 : logger.info(`Error in forked process for ${chainName}: ${err.message}`);
                             this.chainStatuses.set(chainName, {
                                 ...this.chainStatuses.get(chainName),
-                                status: 'error'
+                                status: "error",
                             });
                         });
                     }
@@ -252,20 +252,20 @@ class ChainManager {
                     this.processes.set(chainName, child);
                     this.chainStatuses.set(chainName, {
                         ...this.chainStatuses.get(chainName),
-                        processId: child.pid
+                        processId: child.pid,
                     });
-                    const providerUrl = 'http://127.0.0.1:' + this.forkPort.toString();
+                    const providerUrl = "http://127.0.0.1:" + this.forkPort.toString();
                     try {
                         await this.waitForNetwork(providerUrl, 100000);
                         this.chainStatuses.set(chainName, {
                             ...this.chainStatuses.get(chainName),
-                            status: 'running'
+                            status: "running",
                         });
                     }
                     catch (err) {
                         this.chainStatuses.set(chainName, {
                             ...this.chainStatuses.get(chainName),
-                            status: 'error'
+                            status: "error",
                         });
                         if (err instanceof Error) {
                             console.log(`Network validation failed for ${chainName}: ${err.message}`);
@@ -294,8 +294,8 @@ class ChainManager {
                     }
                     this.chainStatuses.set(chainName, {
                         name: chainName,
-                        status: 'error',
-                        rpcUrl: '',
+                        status: "error",
+                        rpcUrl: "",
                     });
                     throw error; // Re-throw to stop setup
                 }
@@ -318,9 +318,9 @@ class ChainManager {
     static getChainConfig(chainName, config) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         try {
-            const configChainId = chainName.toUpperCase() + '_MOCK_CHAIN_ID';
+            const configChainId = chainName.toUpperCase() + "_MOCK_CHAIN_ID";
             const chainId = (_d = (_c = (_b = (_a = config.chainManager) === null || _a === void 0 ? void 0 : _a.chains) === null || _b === void 0 ? void 0 : _b[chainName]) === null || _c === void 0 ? void 0 : _c.chainId) !== null && _d !== void 0 ? _d : parseInt(process.env[configChainId] || "31337");
-            const envRpcUrl = chainName.toUpperCase() + '_RPC';
+            const envRpcUrl = chainName.toUpperCase() + "_RPC";
             const rpcUrl = (_h = (_g = (_f = (_e = config.chainManager) === null || _e === void 0 ? void 0 : _e.chains) === null || _f === void 0 ? void 0 : _f[chainName]) === null || _g === void 0 ? void 0 : _g.rpcUrl) !== null && _h !== void 0 ? _h : process.env[`${envRpcUrl}`];
             if (!rpcUrl) {
                 throw new ChainConfigError(chainName, `Missing required rpcUrl for ${chainName} or ${envRpcUrl} in .env file.`);
@@ -372,7 +372,7 @@ class ChainManager {
      */
     static getChainStatus(chainName) {
         const status = this.chainStatuses.get(chainName);
-        return (status === null || status === void 0 ? void 0 : status.status) || 'unknown';
+        return (status === null || status === void 0 ? void 0 : status.status) || "unknown";
     }
     /**
      * Get detailed status information for a chain
@@ -414,7 +414,7 @@ class ChainManager {
         const errors = [];
         this.processes.forEach((process, name) => {
             console.log(`💀 Killing forked process for: ${name}`);
-            const cleanupPromise = new Promise((resolve) => {
+            const cleanupPromise = new Promise(resolve => {
                 if (!process || process.killed) {
                     resolve();
                     return;
@@ -432,7 +432,7 @@ class ChainManager {
                     }
                     resolve();
                 }, 5000);
-                process.on('exit', () => {
+                process.on("exit", () => {
                     clearTimeout(timeout);
                     resolve();
                 });
@@ -487,7 +487,7 @@ class ChainManager {
             catch (error) {
                 lastError = error;
                 console.log(`Waiting for network at ${url}...`);
-                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
             }
         }
         throw new NetworkConnectionError(url, lastError || new Error(`Network at ${url} did not respond within ${timeout}ms`));
