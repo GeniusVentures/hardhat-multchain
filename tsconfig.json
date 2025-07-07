@@ -18,7 +18,8 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["jest", "node"]
   },
   "exclude": ["dist", "node_modules", "coverage", ".nyc_output"],
   "include": [
