@@ -139,7 +139,7 @@ class ChainManager {
             return this.instances;
         // Validate input
         if (!chains || chains.length === 0) {
-            throw new ChainConfigError("general", "No chains specified for setup");
+            return new Map();
         }
         // Validate all chain names first
         for (const chainName of chains) {
@@ -350,6 +350,10 @@ class ChainManager {
      * @returns JsonRpcProvider instance or undefined if chain is not found
      */
     static getProvider(chainName) {
+        // Handle null/undefined input
+        if (!chainName) {
+            return undefined;
+        }
         // Validate chain name
         const validation = this.validateChainName(chainName);
         if (!validation.isValid) {
@@ -371,6 +375,10 @@ class ChainManager {
      * @returns Current status of the chain
      */
     static getChainStatus(chainName) {
+        // Handle null/undefined input
+        if (!chainName) {
+            return "unknown";
+        }
         const status = this.chainStatuses.get(chainName);
         return (status === null || status === void 0 ? void 0 : status.status) || "unknown";
     }
