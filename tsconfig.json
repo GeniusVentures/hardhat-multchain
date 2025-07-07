@@ -19,6 +19,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
     "types": ["jest", "node"]
   },
   "exclude": ["dist", "node_modules", "coverage", ".nyc_output"],

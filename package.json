@@ -34,6 +34,7 @@
   ],
   "devDependencies": {
     "@eslint/js": "^9.30.1",
+    "@ethersproject/providers": "^5.5.4",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@types/chai": "^4.1.7",
     "@types/estree": "^1.0.8",

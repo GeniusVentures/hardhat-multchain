@@ -494,7 +494,11 @@ class ChainManager {
             }
             catch (error) {
                 lastError = error;
-                console.log(`Waiting for network at ${url}...`);
+                // Only log if we're not in a test environment or if there's still time left
+                const timeRemaining = timeout - (Date.now() - startTime);
+                if (timeRemaining > 1000 && process.env.NODE_ENV !== 'test') {
+                    console.log(`Waiting for network at ${url}...`);
+                }
                 await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
             }
         }
