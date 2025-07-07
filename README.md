@@ -314,8 +314,6 @@ Error: Missing required rpcUrl for ethereum
 - 🐛 [Issue Tracker](https://github.com/your-org/hardhat-multichain/issues)
 - 💬 [Discussions](https://github.com/your-org/hardhat-multichain/discussions)
 
----
-
 #### Parameters
 
 - `--chains` (comma-separated list): Specifies the networks to fork (e.g., `sepolia,amoy`).
