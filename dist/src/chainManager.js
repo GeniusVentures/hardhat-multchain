@@ -96,7 +96,7 @@ class ChainManager {
                 errors.push("RPC URL must use http, https, ws, or wss protocol");
             }
         }
-        catch (_a) {
+        catch {
             errors.push("Invalid RPC URL format");
         }
         return {
@@ -152,7 +152,6 @@ class ChainManager {
         }
         try {
             await Promise.all(chains.map(async (chainName, index) => {
-                var _a, _b, _c;
                 try {
                     let logger;
                     if (logsDir) {
@@ -217,22 +216,22 @@ class ChainManager {
                     ], {
                         env: {
                             ...process.env,
-                            HH_CHAIN_ID: ((_a = chainConfig.chainId) === null || _a === void 0 ? void 0 : _a.toString()) || "31337",
+                            HH_CHAIN_ID: chainConfig.chainId?.toString() || "31337",
                         },
                         stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
                     });
                     if (logger !== undefined) {
                         // Handle logs
-                        (_b = child.stdout) === null || _b === void 0 ? void 0 : _b.on("data", data => {
-                            logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
+                        child.stdout?.on("data", data => {
+                            logger?.info(data.toString().trim());
                         });
-                        (_c = child.stderr) === null || _c === void 0 ? void 0 : _c.on("data", data => {
+                        child.stderr?.on("data", data => {
                             // // Separate error log (There shouldn't be errors so we leave it commented out)
                             // logger?.error(data.toString().trim());
-                            logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
+                            logger?.info(data.toString().trim());
                         });
                         child.on("exit", code => {
-                            logger === null || logger === void 0 ? void 0 : logger.info(`Forked process for ${chainName} exited with code ${code}`);
+                            logger?.info(`Forked process for ${chainName} exited with code ${code}`);
                             this.chainStatuses.set(chainName, {
                                 ...this.chainStatuses.get(chainName),
                                 status: code === 0 ? "stopped" : "error",
@@ -241,7 +240,7 @@ class ChainManager {
                         child.on("error", err => {
                             // // Separate error log (There shouldn't be errors so we leave it commented out)
                             // logger?.info(`Error in forked process for ${chainConfig.name}: ${err.message}`);
-                            logger === null || logger === void 0 ? void 0 : logger.info(`Error in forked process for ${chainName}: ${err.message}`);
+                            logger?.info(`Error in forked process for ${chainName}: ${err.message}`);
                             this.chainStatuses.set(chainName, {
                                 ...this.chainStatuses.get(chainName),
                                 status: "error",
@@ -316,17 +315,18 @@ class ChainManager {
      * @throws ChainConfigError when configuration is invalid or missing
      */
     static getChainConfig(chainName, config) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         try {
             const configChainId = chainName.toUpperCase() + "_MOCK_CHAIN_ID";
-            const chainId = (_d = (_c = (_b = (_a = config.chainManager) === null || _a === void 0 ? void 0 : _a.chains) === null || _b === void 0 ? void 0 : _b[chainName]) === null || _c === void 0 ? void 0 : _c.chainId) !== null && _d !== void 0 ? _d : parseInt(process.env[configChainId] || "31337");
+            const chainId = config.chainManager?.chains?.[chainName]?.chainId ??
+                parseInt(process.env[configChainId] || "31337");
             const envRpcUrl = chainName.toUpperCase() + "_RPC";
-            const rpcUrl = (_h = (_g = (_f = (_e = config.chainManager) === null || _e === void 0 ? void 0 : _e.chains) === null || _f === void 0 ? void 0 : _f[chainName]) === null || _g === void 0 ? void 0 : _g.rpcUrl) !== null && _h !== void 0 ? _h : process.env[`${envRpcUrl}`];
+            const rpcUrl = config.chainManager?.chains?.[chainName]?.rpcUrl ?? process.env[`${envRpcUrl}`];
             if (!rpcUrl) {
                 throw new ChainConfigError(chainName, `Missing required rpcUrl for ${chainName} or ${envRpcUrl} in .env file.`);
             }
             const blockNumberEnv = process.env[`${chainName.toUpperCase()}_BLOCK`];
-            const blockNumber = (_m = (_l = (_k = (_j = config.chainManager) === null || _j === void 0 ? void 0 : _j.chains) === null || _k === void 0 ? void 0 : _k[chainName]) === null || _l === void 0 ? void 0 : _l.blockNumber) !== null && _m !== void 0 ? _m : (blockNumberEnv ? parseInt(blockNumberEnv) : undefined);
+            const blockNumber = config.chainManager?.chains?.[chainName]?.blockNumber ??
+                (blockNumberEnv ? parseInt(blockNumberEnv) : undefined);
             if (!blockNumber) {
                 console.log(`No fork block number configured for ${chainName} in either hardhat.config or .env file. No cache, downloading latest blocks.`);
             }
@@ -380,7 +380,7 @@ class ChainManager {
             return "unknown";
         }
         const status = this.chainStatuses.get(chainName);
-        return (status === null || status === void 0 ? void 0 : status.status) || "unknown";
+        return status?.status || "unknown";
     }
     /**
      * Get detailed status information for a chain
@@ -408,7 +408,7 @@ class ChainManager {
             await this.waitForNetwork(url, timeout);
             return true;
         }
-        catch (_a) {
+        catch {
             return false;
         }
     }
