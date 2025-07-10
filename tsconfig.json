@@ -14,7 +14,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
-    "rootDirs": ["./src", "./test"],
+    "rootDirs": ["./src"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -26,6 +26,5 @@
   "exclude": ["dist", "node_modules", "coverage", ".nyc_output"],
   "include": [
     "./src/**/*.ts",
-    "./test/**/*.ts"
   ]
 }
