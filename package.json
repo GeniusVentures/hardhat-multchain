@@ -4,6 +4,14 @@
   "description": "A Hardhat plugin for launching multiple forked blockchains",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GeniusVentures/hardhat-multichain.git"
+  },
+  "homepage": "https://github.com/GeniusVentures/hardhat-multichain#readme",
+  "bugs": {
+    "url": "https://github.com/GeniusVentures/hardhat-multichain/issues"
+  },
   "keywords": [
     "ethereum",
     "hardhat",
@@ -23,12 +31,15 @@
     "lint:fix": "eslint 'src/**/*.ts' 'test/**/*.ts' --fix",
     "format": "prettier --write 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "format:check": "prettier --check 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
-    "prepublishOnly": "npm run build && npm run test",
-    "clean": "rm -rf dist coverage .nyc_output"
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
+    "clean": "rm -rf dist coverage .nyc_output",
+    "prepare": "npm run build",
+    "prepack": "npm run build"
   },
   "files": [
     "dist/src/",
     "src/",
+    "tsconfig.json",
     "LICENSE",
     "README.md"
   ],
