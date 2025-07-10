@@ -3,7 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHre = exports.useEnvironment = void 0;
+exports.useEnvironment = useEnvironment;
+exports.getHre = getHre;
 const plugins_testing_1 = require("hardhat/plugins-testing");
 const path_1 = __importDefault(require("path"));
 // Global variable to store the HRE for tests
@@ -19,9 +20,7 @@ function useEnvironment(fixtureProjectName) {
     });
     return hre;
 }
-exports.useEnvironment = useEnvironment;
 function getHre() {
     return hre;
 }
-exports.getHre = getHre;
 //# sourceMappingURL=helpers.js.map
