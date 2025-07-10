@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ChildProcess } from "child_process";
 import ChainManager, {
@@ -398,6 +399,7 @@ describe("Hardhat Plugin for Multi-Fork Blockchain Networks", () => {
 
     it("should handle process cleanup with active processes", async () => {
       // Create a mock process and add it to the processes map
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const mockProcess = {
         pid: 12345,
         kill: jest.fn(),
