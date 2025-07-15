@@ -14,16 +14,18 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
-    "rootDirs": ["./src"],
+    "rootDir": "./src",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "types": ["node"]
+    "types": ["node"],
+    "removeComments": false,
+    "preserveConstEnums": true
   },
-  "exclude": ["node_modules", "coverage", ".nyc_output"],
+  "exclude": ["node_modules", "coverage", ".nyc_output", "dist", "test"],
   "include": [
     "./src/**/*.ts",
   ]
