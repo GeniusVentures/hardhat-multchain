@@ -5,11 +5,13 @@ This directory contains examples and integration tests demonstrating how to use 
 ## Quick Start
 
 1. **Install the plugin:**
+
 ```bash
 npm install hardhat-multichain
 ```
 
 2. **Configure your `.env` file:**
+
 ```env
 MAINNET_RPC=https://eth-mainnet.g.alchemy.com/v2/your-api-key
 SEPOLIA_RPC=https://eth-sepolia.g.alchemy.com/v2/your-api-key
@@ -20,6 +22,7 @@ SEPOLIA_MOCK_CHAIN_ID=11169111
 ```
 
 3. **Update your `hardhat.config.ts`:**
+
 ```typescript
 import * as dotenv from 'dotenv';
 import { HardhatUserConfig } from 'hardhat/config';
@@ -59,6 +62,7 @@ export default config;
 ```
 
 4. **Write your tests:**
+
 ```typescript
 import { expect } from "chai";
 import { ethers } from "hardhat";
@@ -113,6 +117,7 @@ describe('NFT Factory Tests', function () {
 ```
 
 5. **Run your tests:**
+
 ```bash
 # Test on single chain
 npx hardhat test-multichain --chains mainnet test/NFTFactory.test.ts

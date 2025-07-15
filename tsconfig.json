@@ -23,7 +23,7 @@
     "moduleResolution": "node",
     "types": ["node"]
   },
-  "exclude": ["dist", "node_modules", "coverage", ".nyc_output"],
+  "exclude": ["node_modules", "coverage", ".nyc_output"],
   "include": [
     "./src/**/*.ts",
   ]
