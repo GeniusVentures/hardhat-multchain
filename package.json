@@ -2,8 +2,8 @@
   "name": "hardhat-multichain",
   "version": "1.0.0",
   "description": "A Hardhat plugin for launching multiple forked blockchains",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/GeniusVentures/hardhat-multichain.git"
@@ -37,7 +37,7 @@
     "prepack": "npm run build"
   },
   "files": [
-    "dist/",
+    "dist/src/",
     "src/",
     "tsconfig.json",
     "LICENSE",

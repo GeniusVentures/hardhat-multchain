@@ -6,10 +6,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node", "jest"],
-    "typeRoots": [
-      "node_modules/@types"
-    ]
+    "types": ["node", "jest"]
   },
   "include": [
     "src/**/*",

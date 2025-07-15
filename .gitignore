@@ -59,5 +59,14 @@ notes/
 # Yarn Integrity file
 .yarn-integrity
 
+# Yarn PnP (not used in this project)
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
 # notes for scratch docs
 notes/
