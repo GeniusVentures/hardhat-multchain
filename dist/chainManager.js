@@ -431,8 +431,7 @@ class ChainManager {
                 const timeout = setTimeout(() => {
                     if (!process.killed) {
                         try {
-                            process.kill("SIGKILL"); // Force kill if SIGINT didn't work
-                            console.warn(`Force killed process for ${name}`);
+                            process.kill("SIGKILL");
                         }
                         catch (error) {
                             errors.push(new ProcessCleanupError(name, error));
