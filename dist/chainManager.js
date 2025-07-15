@@ -152,31 +152,75 @@ class ChainManager {
         }
         try {
             await Promise.all(chains.map(async (chainName, index) => {
-                var _a, _b, _c;
+                var _a, _b, _c, _d, _e;
                 try {
                     let logger;
                     if (logsDir) {
                         logger = this.createForkLogger(chainName, logsDir);
                     }
-                    // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
+                    // Check for hardhat chain and start a local hardhat node if needed
                     if (chainName === "hardhat") {
                         const providerUrl = "http://127.0.0.1:8545";
-                        console.log(`🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
-                        // Validate hardhat network is accessible
+                        console.log(`🔗 Setting up ${chainName} provider as ${providerUrl} with Hardhat-Multichain`);
+                        // Check if hardhat network is already accessible, if not start a hardhat node
+                        let isNetworkReady = false;
                         try {
-                            await this.waitForNetwork(providerUrl, 5000);
+                            await this.waitForNetwork(providerUrl, 2000); // Short timeout to check if already running
+                            isNetworkReady = true;
+                            console.log(`✅ Hardhat node already running at ${providerUrl}`);
                         }
                         catch (error) {
-                            throw new NetworkConnectionError(providerUrl, error);
+                            console.log(`🛠️ Starting Hardhat node at ${providerUrl}...`);
+                            // Start a hardhat node process
+                            const child = (0, child_process_1.fork)("node_modules/hardhat/internal/cli/cli.js", [
+                                "node",
+                                "--port",
+                                "8545",
+                                "--hostname",
+                                "127.0.0.1"
+                            ], {
+                                env: {
+                                    ...process.env,
+                                    HH_CHAIN_ID: "31337",
+                                },
+                                stdio: ["pipe", "pipe", "pipe", "ipc"],
+                            });
+                            if (logger !== undefined) {
+                                (_a = child.stdout) === null || _a === void 0 ? void 0 : _a.on("data", data => {
+                                    logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
+                                });
+                                (_b = child.stderr) === null || _b === void 0 ? void 0 : _b.on("data", data => {
+                                    logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
+                                });
+                                child.on("exit", code => {
+                                    logger === null || logger === void 0 ? void 0 : logger.info(`Hardhat node process exited with code ${code}`);
+                                });
+                                child.on("error", err => {
+                                    logger === null || logger === void 0 ? void 0 : logger.info(`Error in Hardhat node process: ${err.message}`);
+                                });
+                            }
+                            // Store the process
+                            this.processes.set(chainName, child);
+                            // Wait for the network to be ready
+                            try {
+                                await this.waitForNetwork(providerUrl, 30000); // Longer timeout for startup
+                                isNetworkReady = true;
+                                console.log(`✅ Hardhat node started successfully at ${providerUrl}`);
+                            }
+                            catch (startupError) {
+                                throw new NetworkConnectionError(providerUrl, startupError);
+                            }
                         }
-                        const provider = new providers_1.JsonRpcProvider(providerUrl);
-                        this.instances.set(chainName, provider);
-                        this.chainStatuses.set(chainName, {
-                            name: chainName,
-                            status: "running",
-                            rpcUrl: providerUrl,
-                            port: 8545,
-                        });
+                        if (isNetworkReady) {
+                            const provider = new providers_1.JsonRpcProvider(providerUrl);
+                            this.instances.set(chainName, provider);
+                            this.chainStatuses.set(chainName, {
+                                name: chainName,
+                                status: "running",
+                                rpcUrl: providerUrl,
+                                port: 8545,
+                            });
+                        }
                         return;
                     }
                     this.forkPort = this.forkPort + index;
@@ -217,16 +261,16 @@ class ChainManager {
                     ], {
                         env: {
                             ...process.env,
-                            HH_CHAIN_ID: ((_a = chainConfig.chainId) === null || _a === void 0 ? void 0 : _a.toString()) || "31337",
+                            HH_CHAIN_ID: ((_c = chainConfig.chainId) === null || _c === void 0 ? void 0 : _c.toString()) || "31337",
                         },
                         stdio: ["pipe", "pipe", "pipe", "ipc"], // Enable stdout & stderr pipes
                     });
                     if (logger !== undefined) {
                         // Handle logs
-                        (_b = child.stdout) === null || _b === void 0 ? void 0 : _b.on("data", data => {
+                        (_d = child.stdout) === null || _d === void 0 ? void 0 : _d.on("data", data => {
                             logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());
                         });
-                        (_c = child.stderr) === null || _c === void 0 ? void 0 : _c.on("data", data => {
+                        (_e = child.stderr) === null || _e === void 0 ? void 0 : _e.on("data", data => {
                             // // Separate error log (There shouldn't be errors so we leave it commented out)
                             // logger?.error(data.toString().trim());
                             logger === null || logger === void 0 ? void 0 : logger.info(data.toString().trim());

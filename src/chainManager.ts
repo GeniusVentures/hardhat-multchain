@@ -189,28 +189,82 @@ class ChainManager {
               logger = this.createForkLogger(chainName, logsDir);
             }
 
-            // Check for hardhat chain and make the provider localhost (127.0.0.1:8545)
+            // Check for hardhat chain and start a local hardhat node if needed
             if (chainName === "hardhat") {
               const providerUrl = "http://127.0.0.1:8545";
               console.log(
-                `🔗 Default ${chainName} provider as ${providerUrl} with Hardhat-Multichain`
+                `🔗 Setting up ${chainName} provider as ${providerUrl} with Hardhat-Multichain`
               );
 
-              // Validate hardhat network is accessible
+              // Check if hardhat network is already accessible, if not start a hardhat node
+              let isNetworkReady = false;
               try {
-                await this.waitForNetwork(providerUrl, 5000);
+                await this.waitForNetwork(providerUrl, 2000); // Short timeout to check if already running
+                isNetworkReady = true;
+                console.log(`✅ Hardhat node already running at ${providerUrl}`);
               } catch (error) {
-                throw new NetworkConnectionError(providerUrl, error as Error);
+                console.log(`🛠️ Starting Hardhat node at ${providerUrl}...`);
+                
+                // Start a hardhat node process
+                const child = fork(
+                  "node_modules/hardhat/internal/cli/cli.js",
+                  [
+                    "node",
+                    "--port",
+                    "8545",
+                    "--hostname",
+                    "127.0.0.1"
+                  ],
+                  {
+                    env: {
+                      ...process.env,
+                      HH_CHAIN_ID: "31337",
+                    },
+                    stdio: ["pipe", "pipe", "pipe", "ipc"],
+                  }
+                );
+
+                if (logger !== undefined) {
+                  child.stdout?.on("data", data => {
+                    logger?.info(data.toString().trim());
+                  });
+
+                  child.stderr?.on("data", data => {
+                    logger?.info(data.toString().trim());
+                  });
+
+                  child.on("exit", code => {
+                    logger?.info(`Hardhat node process exited with code ${code}`);
+                  });
+
+                  child.on("error", err => {
+                    logger?.info(`Error in Hardhat node process: ${err.message}`);
+                  });
+                }
+
+                // Store the process
+                this.processes.set(chainName, child);
+                
+                // Wait for the network to be ready
+                try {
+                  await this.waitForNetwork(providerUrl, 30000); // Longer timeout for startup
+                  isNetworkReady = true;
+                  console.log(`✅ Hardhat node started successfully at ${providerUrl}`);
+                } catch (startupError) {
+                  throw new NetworkConnectionError(providerUrl, startupError as Error);
+                }
               }
 
-              const provider = new JsonRpcProvider(providerUrl);
-              this.instances.set(chainName, provider);
-              this.chainStatuses.set(chainName, {
-                name: chainName,
-                status: "running",
-                rpcUrl: providerUrl,
-                port: 8545,
-              });
+              if (isNetworkReady) {
+                const provider = new JsonRpcProvider(providerUrl);
+                this.instances.set(chainName, provider);
+                this.chainStatuses.set(chainName, {
+                  name: chainName,
+                  status: "running",
+                  rpcUrl: providerUrl,
+                  port: 8545,
+                });
+              }
               return;
             }
 
